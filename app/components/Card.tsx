@@ -2,9 +2,10 @@
 
 type CardProps = {
   card: string;
+  size?: 'normal' | 'small';
 };
 
-export function Card({ card }: CardProps) {
+export function Card({ card, size = 'normal' }: CardProps) {
   // 解析卡牌字符串，例如 "H10" 表示红桃10
   const suit = card.charAt(0);
   const value = card.substring(1);
@@ -54,12 +55,17 @@ export function Card({ card }: CardProps) {
     }
   };
   
+  // 根据size属性确定卡牌尺寸
+  const sizeClasses = size === 'small' 
+    ? 'w-8 h-12 text-xs' 
+    : 'w-12 h-16';
+  
   return (
-    <div className={`w-12 h-16 bg-white rounded-md shadow-md flex flex-col items-center justify-center ${getSuitColor()} relative overflow-hidden border border-gray-300 hover:shadow-lg transition-shadow cursor-pointer`}>
+    <div className={`${sizeClasses} bg-white rounded-md shadow-md flex flex-col items-center justify-center ${getSuitColor()} relative overflow-hidden border border-gray-300 hover:shadow-lg transition-shadow cursor-pointer`}>
       <div className="absolute top-1 left-1 text-xs font-bold">
         {getValueDisplay()}
       </div>
-      <div className="text-xl">
+      <div className={size === 'small' ? 'text-lg' : 'text-xl'}>
         {getSuitSymbol()}
       </div>
       <div className="absolute bottom-1 right-1 text-xs font-bold transform rotate-180">
