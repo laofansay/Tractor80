@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { Card } from './Card';
-
-type GamePhase = 'initial' | 'dealing' | 'trumpSelection' | 'pickBottomCards' | 'bottomCards' | 'playing';
-type Position = 'north' | 'east' | 'south' | 'west';
+import { GamePhase, Position } from './constant/Constant';
 
 type AdminPanelProps = {
     onInitialize: () => void;
@@ -14,9 +12,6 @@ type AdminPanelProps = {
     onStartPlaying: () => void;
     gamePhase: GamePhase;
     deckLength: number;
-    bottomCardsLength: number;
-    lastRound?: Record<Position, string[]>;
-    roundCount?: number;
 };
 
 export function AdminPanel({
@@ -27,9 +22,6 @@ export function AdminPanel({
     onStartPlaying,
     gamePhase,
     deckLength,
-    bottomCardsLength,
-    lastRound = { north: [], east: [], south: [], west: [] },
-    roundCount = 0
 }: AdminPanelProps) {
 
     return (

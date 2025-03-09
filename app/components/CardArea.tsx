@@ -12,6 +12,7 @@ type CardAreaProps = {
     isDealer: boolean;
     gamePhase: GamePhase;
     isCurrentPlayer?: boolean;
+    trumpSuit?: string | null; // 添加主牌花色属性
     onDeclare: () => void;
     onPlayCard: (cards: string[]) => void;
     onSelectBottomCards?: (selectedCards: string[]) => void;
@@ -55,7 +56,7 @@ const sortCards = (cards: string[]) => {
     });
 };
 
-export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false, onDeclare, onPlayCard, onSelectBottomCards, onSkipTrump }: CardAreaProps) {
+export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false, trumpSuit, onDeclare, onPlayCard, onSelectBottomCards, onSkipTrump }: CardAreaProps) {
     // 用于跟踪扣底阶段选中的卡牌
     const [selectedCards, setSelectedCards] = useState < string[] > ([]);
 
@@ -125,12 +126,24 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     return (
         <div className="relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg">
             <div className="flex flex-col items-center">
-                <div className="mb-2 text-green-100 font-medium">
-                    {position === 'north' && '北方玩家'}
-                    {position === 'east' && '东方玩家'}
-                    {position === 'south' && '南方玩家'}
-                    {position === 'west' && '西方玩家'}
-                    {isDealer && ' (庄家)'}
+                <div className="mb-2 text-green-100 font-medium flex items-center">
+                    <span>
+                        {position === 'north' && '北方玩家'}
+                        {position === 'east' && '东方玩家'}
+                        {position === 'south' && '南方玩家'}
+                        {position === 'west' && '西方玩家'}
+                        {isDealer && ' (庄家)'}
+                    </span>
+                    {/* 显示主牌花色标志 */}
+                    {trumpSuit && (gamePhase === 'pickBottomCards' || gamePhase === 'bottomCards' || gamePhase === 'playing') && (
+                        <div className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${isDealer ? 'bg-yellow-400 text-yellow-900' : 'bg-gray-700 text-white'}`}>
+                            主牌: 
+                            {trumpSuit === 'S' && '♠️'}
+                            {trumpSuit === 'H' && '♥️'}
+                            {trumpSuit === 'D' && '♦️'}
+                            {trumpSuit === 'C' && '♣️'}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-center items-center space-x-[-1.5rem] overflow-x-auto py-2 px-4 min-h-[6rem]">
