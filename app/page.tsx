@@ -18,21 +18,26 @@ export default function Home() {
   const [blueUpLevel, setBlueUpLevel] = useState < string > ('2');
 
   const [players, setPlayers] = useState < Record < Position, Player>> ({
-    north: { cards: [], isDealer: false, isBot: true, camp: 'red' },
-    east: { cards: [], isDealer: false, isBot: true, camp: 'blue' },
-    south: { cards: [], isDealer: false, isBot: false, camp: 'red' },
-    west: { cards: [], isDealer: false, isBot: true, camp: 'blue' },
-    obs: { cards: [], isDealer: false, isObs: true, camp: null, RecCards: [], currentRound: [], lastRound: [] },
+    north: { cards: [], isDealer: false, isBot: true, camp: 'red', isDdeclareTrump: false },
+    east: { cards: [], isDealer: false, isBot: true, camp: 'blue', isDdeclareTrump: false },
+    south: { cards: [], isDealer: false, isBot: false, camp: 'red', isDdeclareTrump: false },
+    west: { cards: [], isDealer: false, isBot: true, camp: 'blue', isDdeclareTrump: false },
+    obs: {
+      cards: [], isDealer: false, isObs: true, camp: null, RecCards: [], currentRound: [],
+      lastRound: [], trumpSuit: ''
+    },
   });
 
 
-
+  //高主玩家
   const [dealerPosition, setDealerPosition] = useState < Position | null > (null);
   const [currentPlayer, setCurrentPlayer] = useState < Position | null > (null);
 
   const [roundCount, setRoundCount] = useState < number > (0);
-  // 添加主牌花色状态
-  const [trumpSuit, setTrumpSuit] = useState < string | null > (null);
+
+  // 可选择的主牌花色状态
+  const [availableSuits, setAvailableSuits] = useState < string[any] > ([]);
+
   // 添加显示上一回合状态
   const [showLastRound, setShowLastRound] = useState < boolean > (false);
   // 添加音效加载状态
@@ -45,6 +50,7 @@ export default function Home() {
     south: 0,
     west: 0
   });
+
 
   // 预加载音效
   useEffect(() => {
@@ -62,7 +68,7 @@ export default function Home() {
           console.warn('发牌音效尚未加载完成，稍后重试...');
           setTimeout(checkSoundLoaded, 1000); // 1秒后重试
         }
-      };
+      }
 
       // 延迟检查，给音频加载一些时间
       setTimeout(checkSoundLoaded, 1000);
@@ -224,11 +230,11 @@ export default function Home() {
     // 更新状态
     setGamePhase('initial');
 
-    // 重置玩家状态，将所有牌发给OBS玩家，同OBS执行所有的，发牌..操作
+    // 重置玩家状态，将所有牌发给OBS玩家，同OBS执行所有的，发牌..操作 玩家设置为庄家
     setPlayers({
       north: { cards: [], isDealer: false, isBot: true, camp: 'red' },
       east: { cards: [], isDealer: false, isBot: true, camp: 'blue' },
-      south: { cards: [], isDealer: false, isBot: false, camp: 'red' },
+      south: { cards: [], isDealer: true, isBot: false, camp: 'red' },
       west: { cards: [], isDealer: false, isBot: true, camp: 'blue' },
       obs: {
         cards: newDeck, isDealer: false, isObs: true, camp: null,
@@ -241,7 +247,6 @@ export default function Home() {
     setDealerPosition(null);
     setCurrentPlayer(null);
     setRoundCount(0);
-    setTrumpSuit(null); // 重置主牌花色
     // 重置得分和升级点数
     setScores({
       north: 0,
@@ -253,12 +258,10 @@ export default function Home() {
     setBlueUpLevel('2');
   };
 
-  // 发牌
+  //发牌
   const dealCards = () => {
     if (gamePhase !== 'initial' || players.obs.cards.length === 0) return;
-
     setGamePhase('dealing');
-
     // 从OBS玩家的cards中获取牌
     const newPlayers = { ...players };
     const obsCards = [...newPlayers.obs.cards];
@@ -270,6 +273,7 @@ export default function Home() {
     const dealNextCard = () => {
       if (cardIndex < 48) { // 48张牌给玩家（每人12张）
         const position = positions[playerIndex];
+        //发出的牌
         const card = obsCards.shift(); // 从obsCards中移除第一张牌
 
         if (card) {
@@ -289,13 +293,21 @@ export default function Home() {
           // 更新计数器
           cardIndex++;
           playerIndex = (playerIndex + 1) % 4;
-
           // 更新界面
           setPlayers({ ...newPlayers });
-          //执行亮主方法
-          declareTrump(position);
+          console.log('发牌:', card);
           // 继续发下一张牌
           setTimeout(dealNextCard, 100);
+        }
+      } else {
+        // 发牌完成后，如果还没有亮主，则设置为亮主阶段, 否则设置为拾度阶段
+
+        // 使用函数内的状态而不是依赖dealerPosition状态变量
+        // 因为React状态更新是异步的
+        if (gamePhase === 'dealing' && dealerPosition === null) {
+          setGamePhase('trumpSelection');
+        } else {
+          setGamePhase('pickBottomCards');
         }
       }
     };
@@ -303,6 +315,93 @@ export default function Home() {
     // 开始发牌动画
     dealNextCard();
   };
+
+
+
+  //监听玩家的手牌变化
+  useEffect(() => {
+
+    if (dealerPosition == null && gamePhase === 'dealing') {
+      declareTrump('north')
+    };
+  }, [gamePhase, players.north.cards, dealerPosition]);
+
+  //监听玩家的手牌变化
+  useEffect(() => {
+    if (dealerPosition == null && gamePhase === 'dealing') {
+      declareTrump('east')
+    };
+  }, [gamePhase, players.east.cards, , dealerPosition]);
+
+  useEffect(() => {
+    if (dealerPosition == null && gamePhase === 'dealing') {
+      declareTrump('south')
+    };
+  }, [gamePhase, players.south.Cards, dealerPosition]);
+
+  useEffect(() => {
+    if (dealerPosition == null && gamePhase === 'dealing') {
+      declareTrump('west')
+    };
+  }, [gamePhase, players.west.Cards, dealerPosition]);
+
+
+
+  // 选择庄家并设置主牌花色，亮主
+  const declareTrump = (position: Position) => {
+    // 使用本地变量跟踪当前设置的庄家，避免依赖异步状态更新
+    const newPlayers = { ...players };
+    console.log('亮主:', position);
+
+    const suits = ['S', 'H', 'D', 'C'];
+    const playerCards = newPlayers[position].cards;
+    // 机器人玩家的亮主逻辑
+    if (newPlayers[position].isBot) {
+      // 检查每种花色
+      for (const suit of suits) {
+        // 检查是否有该花色的2
+        if (playerCards.includes(suit + '2')) {
+          // 统计该花色的牌数量
+          const sameSuitCards = playerCards.filter(c => c.charAt(0) === suit);
+          // 检查是否有该花色的5、10或K
+          const has5_10_K = playerCards.some(c =>
+            c.charAt(0) === suit && ['5', '10', 'K'].includes(c.substring(1)));
+          // 如果该花色牌数量至少有2张或有5、10、K中任意一张，则亮主
+          if (sameSuitCards.length >= 2 || has5_10_K) {
+            setAvailableSuits([suit]);
+            setDealerPosition(position);
+
+            newPlayers[position].isDealer = true;
+            newPlayers[position].trumpSuit = suit;
+            newPlayers[position].isDdeclareTrump = true;
+            newPlayers.obs.trumpSuit = suit;
+
+            setGamePhase('pickBottomCards');
+            // 设置庄家位置
+            const currentDealerPosition = position;
+            setDealerPosition(currentDealerPosition);
+            setCurrentPlayer(currentDealerPosition); // 设置当前玩家为庄家
+            break;
+
+          }
+        }
+      }
+    } else {
+      for (const card of playerCards) {
+        const cardValue = card.substring(1);
+        if (cardValue === '2' || cardValue === 'J' || cardValue === 'B') {
+          setAvailableSuits(prevSuits => [...prevSuits, cardValue]);
+          setGamePhase('trumpSelection'); // 设置为亮主阶段
+        }
+      }
+
+    }
+    // 更新界面 - 修正为更新整个players对象
+    setPlayers(newPlayers);
+
+
+  }
+
 
   // 庄家拾底
   const pickBottomCards = () => {
@@ -330,52 +429,37 @@ export default function Home() {
     setCurrentPlayer(dealerPosition);
   };
 
-  // 选择庄家并设置主牌花色，亮主
-  const declareTrump = (position: Position) => {
+
+  //玩家选择花色亮主
+  const selectTrump = (suit: string | null) => {
     if (gamePhase !== 'trumpSelection') return;
 
-    // 获取玩家手牌中最大的花色作为主牌
-    const playerCards = players[position].cards;
-    let maxSuit = '';
-    let maxValue = -1;
-
-    // 遍历玩家手牌，找出点数最大的普通牌的花色
-    playerCards.forEach(card => {
-      const suit = card.charAt(0);
-      const value = card.substring(1);
-      // 跳过大小王
-      if (suit !== 'J' && suit !== 'B') {
-        const numValue = value === '1' ? 14 : parseInt(value); // A的值设为14
-        if (numValue > maxValue) {
-          maxValue = numValue;
-          maxSuit = suit;
-        }
-      }
-    });
-
-    // 设置庄家
-    const newPlayers = { ...players };
-    Object.keys(newPlayers).forEach(pos => {
-      newPlayers[pos as Position].isDealer = pos === position;
-    });
-
-    // 更新状态
-    setPlayers(newPlayers);
-    setDealerPosition(position);
-    setTrumpSuit(maxSuit); // 设置主牌花色
-    setGamePhase('pickBottomCards');
-    setCurrentPlayer(position); // 设置当前玩家为庄家
-  };
-
-  // 选择主牌花色
-  const selectTrump = (trumpSuit: string | null) => {
-    if (gamePhase !== 'trumpSelection' || !dealerPosition) return;
-
     // 设置主牌花色
-    setTrumpSuit(trumpSuit);
-    // 进入拾底阶段
+    setTrumpSuit(suit);
+
+    // 进入扣底阶段
     setGamePhase('pickBottomCards');
+
+    // 如果有庄家，设置当前玩家为庄家并更新玩家状态
+    if (dealerPosition) {
+      // 更新玩家状态，确保庄家标识正确显示
+      const newPlayers = { ...players };
+      // 更新主牌花色
+      newPlayers.obs.trumpSuit = suit || '';
+
+      // 重置所有玩家的庄家状态
+      Object.keys(newPlayers).forEach(pos => {
+        if (pos !== 'obs' && newPlayers[pos]) {
+          newPlayers[pos].isDealer = pos === dealerPosition;
+        }
+      });
+
+      // 更新玩家状态
+      setPlayers(newPlayers);
+      setCurrentPlayer(dealerPosition);
+    }
   };
+
 
   // AI玩家自动操作
   useEffect(() => {
@@ -415,6 +499,7 @@ export default function Home() {
       return () => clearTimeout(aiTimeout);
     }
   }, [currentPlayer, gamePhase, players, dealerPosition]);
+
 
 
 
@@ -531,28 +616,7 @@ export default function Home() {
     });
   };
 
-  // 添加可用花色状态
-  const [availableSuits, setAvailableSuits] = useState < string[] > ([]);
 
-  // 检查玩家手牌中是否有对应花色的2的逻辑
-  const checkAvailableSuits = () => {
-    if (gamePhase !== 'trumpSelection' || !currentPlayer) return;
-
-    // 获取当前玩家的手牌
-    const playerCards = players[currentPlayer].cards;
-    const suits = ['S', 'H', 'D', 'C'];
-    const available: string[] = [];
-
-    // 检查每种花色是否有2
-    suits.forEach(suit => {
-      if (playerCards.includes(`${suit}2`)) {
-        available.push(suit);
-      }
-    });
-
-    // 更新可用花色状态
-    setAvailableSuits(available);
-  };
 
   // 处理升级点数的函数
   const handleUpgrade = (camp: 'red' | 'blue') => {
@@ -572,12 +636,8 @@ export default function Home() {
     }
   };
 
-  // 在进入亮主阶段或当前玩家变化时检查可用花色
-  useEffect(() => {
-    if (gamePhase === 'trumpSelection') {
-      checkAvailableSuits();
-    }
-  }, [gamePhase, currentPlayer, players]);
+
+
 
 
   return (
@@ -593,7 +653,8 @@ export default function Home() {
             cards={players.north.cards}
             isDealer={players.north.isDealer}
             isCurrentPlayer={currentPlayer === 'north'}
-            trumpSuit={trumpSuit}
+            trumpSuit={players.obs.trumpSuit}
+            isTrumpSuit={players.north.isDdeclareTrump}
             onDeclare={() => declareTrump('north')}
             onPlayCard={(cards) => playCard('north', cards)}
             onSelectBottomCards={handleBottomCards}
@@ -609,7 +670,8 @@ export default function Home() {
             cards={players.west.cards}
             isDealer={players.west.isDealer}
             isCurrentPlayer={currentPlayer === 'west'}
-            trumpSuit={trumpSuit}
+            trumpSuit={players.obs.trumpSuit}
+            isTrumpSuit={players.west.isDdeclareTrump}
             onDeclare={() => declareTrump('west')}
             onPlayCard={(cards) => playCard('west', cards)}
             onSelectBottomCards={handleBottomCards}
@@ -625,7 +687,8 @@ export default function Home() {
             cards={players.east.cards}
             isDealer={players.east.isDealer}
             isCurrentPlayer={currentPlayer === 'east'}
-            trumpSuit={trumpSuit}
+            trumpSuit={players.obs.trumpSuit}
+            isTrumpSuit={players.east.isDdeclareTrump}
             onDeclare={() => declareTrump('east')}
             onPlayCard={(cards) => playCard('east', cards)}
             onSelectBottomCards={handleBottomCards}
@@ -641,7 +704,8 @@ export default function Home() {
             cards={players.south.cards}
             isDealer={players.south.isDealer}
             isCurrentPlayer={currentPlayer === 'south'}
-            trumpSuit={trumpSuit}
+            trumpSuit={players.obs.trumpSuit}
+            isTrumpSuit={players.south.isDdeclareTrump}
             onDeclare={() => declareTrump('south')}
             onPlayCard={(cards) => playCard('south', cards)}
             onSelectBottomCards={handleBottomCards}
@@ -678,13 +742,14 @@ export default function Home() {
 
 
           {/* 显示主牌花色 */}
-          {trumpSuit && (
+          {players.obs.trumpSuit && (
             <div className="mt-2 text-yellow-300 text-sm font-semibold">
               主牌花色:
-              {trumpSuit === 'S' && '♠️ 黑桃'}
-              {trumpSuit === 'H' && '♥️ 红桃'}
-              {trumpSuit === 'C' && '♣️ 梅花'}
-              {trumpSuit === 'D' && '♦️ 方块'}
+              {players.obs.trumpSuit === 'S' && '♠️ 黑桃'}
+              {players.obs.trumpSuit === 'H' && '♥️ 红桃'}
+              {players.obs.trumpSuit === 'C' && '♣️ 梅花'}
+              {players.obs.trumpSuit === 'D' && '♦️ 方块'}
+              {players.obs.trumpSuit === '' && ' NT'}
             </div>
           )}
 
@@ -771,9 +836,7 @@ export default function Home() {
           onSelectTrump={selectTrump}
           gamePhase={gamePhase}
           availableSuits={availableSuits}
-          redUpLevel={redUpLevel}
-          blueUpLevel={blueUpLevel}
-          onUpgrade={handleUpgrade}
+          trumpSuit={players.obs.trumpSuit}
         />
       </div>
     </main>

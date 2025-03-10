@@ -3,8 +3,6 @@
 import { useState, useMemo } from 'react';
 import { Card } from './Card';
 
-type Position = 'north' | 'east' | 'south' | 'west';
-type GamePhase = 'initial' | 'dealing' | 'trumpSelection' | 'pickBottomCards' | 'bottomCards' | 'playing';
 
 type CardAreaProps = {
     position: Position;
@@ -13,10 +11,10 @@ type CardAreaProps = {
     gamePhase: GamePhase;
     isCurrentPlayer?: boolean;
     trumpSuit?: string | null; // 添加主牌花色属性
+    isTrumpSuit?: boolean; // 添加主牌花色属性
     onDeclare: () => void;
     onPlayCard: (cards: string[]) => void;
     onSelectBottomCards?: (selectedCards: string[]) => void;
-    onSkipTrump?: () => void;
 };
 
 // 卡牌排序函数
@@ -56,26 +54,17 @@ const sortCards = (cards: string[]) => {
     });
 };
 
-export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false, trumpSuit, onDeclare, onPlayCard, onSelectBottomCards, onSkipTrump }: CardAreaProps) {
+export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false,
+    trumpSuit,
+    isTrumpSuit = false,
+    onPlayCard, onSelectBottomCards }: CardAreaProps) {
     // 用于跟踪扣底阶段选中的卡牌
     const [selectedCards, setSelectedCards] = useState < string[] > ([]);
 
     // 使用useMemo对卡牌进行排序，避免每次渲染都重新排序
     const sortedCards = useMemo(() => sortCards(cards), [cards]);
 
-    // 处理亮主
-    const handleDeclare = () => {
-        if (gamePhase === 'trumpSelection') {
-            onDeclare();
-        }
-    };
-    
-    // 处理跳过亮主
-    const handleSkipTrump = () => {
-        if (gamePhase === 'trumpSelection' && isCurrentPlayer && onSkipTrump) {
-            onSkipTrump();
-        }
-    };
+
 
     // 处理卡牌点击
     const handleCardClick = (card: string) => {
@@ -135,15 +124,12 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                         {isDealer && ' (庄家)'}
                     </span>
                     {/* 显示主牌花色标志 */}
-                    {trumpSuit && (gamePhase === 'pickBottomCards' || gamePhase === 'bottomCards' || gamePhase === 'playing') && (
-                        <div className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${isDealer ? 'bg-yellow-400 text-yellow-900' : 'bg-gray-700 text-white'}`}>
-                            主牌: 
-                            {trumpSuit === 'S' && '♠️'}
-                            {trumpSuit === 'H' && '♥️'}
-                            {trumpSuit === 'D' && '♦️'}
-                            {trumpSuit === 'C' && '♣️'}
+                    {isTrumpSuit && (
+                        <div className='ml-2 px-2 py-0.5 rounded-full text-xs font-bold  bg-yellow-400 text-yellow-900'>
+                            亮主
                         </div>
                     )}
+
                 </div>
 
                 <div className="flex justify-center items-center space-x-[-1.5rem] overflow-x-auto py-2 px-4 min-h-[6rem]">
@@ -158,23 +144,6 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                     ))}
                 </div>
 
-                {/* 亮主按钮和跳过按钮 - 只在亮主阶段且是当前玩家时显示 */}
-                {gamePhase === 'trumpSelection' && isCurrentPlayer && (
-                    <div className="mt-2 flex gap-2">
-                        <button
-                            onClick={handleDeclare}
-                            className="px-3 py-1 bg-yellow-600 hover:bg-yellow-500 text-white text-sm rounded-md transition-colors"
-                        >
-                            亮主(成为庄家)
-                        </button>
-                        <button
-                            onClick={handleSkipTrump}
-                            className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-md transition-colors"
-                        >
-                            跳过
-                        </button>
-                    </div>
-                )}
 
                 {/* 扣底阶段提示和按钮 */}
                 {gamePhase === 'bottomCards' && isDealer && (
