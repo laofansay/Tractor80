@@ -9,11 +9,19 @@ import { ScorePanel } from './components/ScorePanel';
 import { TrumpSelectionPanel } from './components/TrumpSelectionPanel';
 import { selectCardsToPlay } from './utils/AICardSelection';
 import { validateCardPlay } from './utils/gameRules';
+import { usePoints } from "./hooks/usePoints"; // 假设 usePoints Hook 已定义
 
 
 import { GamePhase, Position, Player } from './components/constant/Constant';
+import { compareCards } from './utils/cardUtils';
+
+
 
 export default function Home() {
+
+
+  const { points, addCardToCamp } = usePoints();
+
   // 游戏状态管理
   const [gamePhase, setGamePhase] = useState < GamePhase > ('initial');
 
@@ -31,18 +39,16 @@ export default function Home() {
     },
   });
 
-  //const { toast } = useToast();
   //高主玩家
   const [dealerPosition, setDealerPosition] = useState < Position | null > (null);
   const [currentPlayer, setCurrentPlayer] = useState < Position | null > (null);
 
   const [roundCount, setRoundCount] = useState < number > (0);
-
   // 可选择的主牌花色状态
   const [availableSuits, setAvailableSuits] = useState < string[any] > ([]);
 
-  // 添加主牌花色状态
-  //const [trumpSuit, setTrumpSuit] = useState < string | null > (null);
+  //本回合中谁也的牌最大
+  const [masterPlayerRound, setMasterPlayerRound] = useState < Position | null > (null);
 
   // 添加显示上一回合状态
   const [showLastRound, setShowLastRound] = useState < boolean > (false);
@@ -135,6 +141,23 @@ export default function Home() {
     });
 
 
+    //与之前出牌玩量最大的牌比大于
+
+    if (masterPlayerRound == null) {
+      //他是第一个出牌的
+      setMasterPlayerRound(position)
+    } else {
+      const masterPlayerRoundCard = newPlayers.obs.currentRound[masterPlayerRound];
+      const result = compareCards(masterPlayerRoundCard, cards, newPlayers.obs.trumpSuit);
+      // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
+      if (result > 0) {
+        console.log(position, '玩家出的牌小')
+      } else {
+        setMasterPlayerRound(position)
+      }
+
+    }
+
 
     // 检查当前回合是否所有玩家都已出牌
     const allPlayersPlayed = ['north', 'east', 'south', 'west'].every(position =>
@@ -142,6 +165,19 @@ export default function Home() {
     );
     //当前回合结束
     if (allPlayersPlayed) {
+      //本轮牌最大的完成
+      //闲家得分 和庄家是不是一个阵营的，不是则抓分
+      if (newPlayers[masterPlayerRound].camp !== newPlayers[dealerPosition].camp) {
+        Object.values(newPlayers.obs.currentRound).flat().forEach(card => {
+          // 提取 card 的数值部分（去掉花色）
+          let cardValue = card.slice(1); // 去掉第一个字符（花色）
+          // 判断是否符合条件
+          if (cardValue === '5' || cardValue === '10' || cardValue === 'K') {
+            addCardToCamp(newPlayers[masterPlayerRound].camp, card, cardValue === '5' ? 5 : 10)
+          }
+        });
+      }
+
       newPlayers.obs = {
         ...newPlayers.obs,
         recRound: [
@@ -155,8 +191,9 @@ export default function Home() {
 
       // 增加回合计数
       setRoundCount(roundCount + 1);
-      //计算本回合4名玩家谁也的牌的点数大 则下一回合由该玩家先出牌
-
+      //本回合出牌最在的玩家为当前玩家
+      setCurrentPlayer(masterPlayerRound);
+      setMasterPlayerRound(null);
     } else {
       // 设置下一个出牌玩家
       const nextPlayer = getNextPlayer(position);
@@ -166,13 +203,18 @@ export default function Home() {
 
 
     // 检查游戏是否结束（所有玩家手牌都出完）
-    const isGameOver = Object.values(newPlayers).every(player => player.cards.length === 0);
+    const isGameOver = Object.entries(newPlayers)
+      .filter(([key]) => key !== 'obs') // 排除OBS玩家
+      .every(([key, player]) => player.cards.length === 0); // 检查其他玩家的卡牌长度是否为0
+
     if (isGameOver) {
       // 游戏结束，显示结果
       setTimeout(() => {
         if (confirm(`游戏结束！共进行了${roundCount + 1}回合。\n\n是否要开始新的游戏？`)) {
           // 重新开始游戏
           initializeDeck();
+          cleanPoint('red');
+          cleanPoint('blue');
         }
       }, 500); // 稍微延迟，让最后一张牌的状态更新完成
     }
@@ -314,7 +356,6 @@ export default function Home() {
           // 更新界面
           setPlayers({ ...newPlayers });
           console.log('发牌:', card);
-
           // 在每发一张牌后直接调用declareTrump函数
           // 只有在庄家未确定且处于发牌阶段时才尝试亮主
           if (!isDealerPosition) {
@@ -336,7 +377,7 @@ export default function Home() {
         } else {
           // 已经有庄家，进入拾底阶段
           setGamePhase('pickBottomCards');
-          setCurrentPlayer(dealerPosition); // 设置当前玩家为庄家
+          //setCurrentPlayer(dealerPosition); // 设置当前玩家为庄家
         }
       }
     };
@@ -740,10 +781,6 @@ export default function Home() {
     return selectedCards;
   };
 
-  // 处理升级点数的函数
-
-  // 处理升级点数的函数
-
 
 
   // 处理升级点数的函数
@@ -772,9 +809,13 @@ export default function Home() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-900 via-green-800 to-green-700 p-8">
       <div className="relative w-full max-w-6xl aspect-square p-12 rounded-3xl bg-green-800/30 backdrop-blur-md shadow-2xl border border-green-600/20">
         {/* 得分面板 */}
-        <ScorePanel scores={scores} dealerPosition={dealerPosition} redUpLevel={redUpLevel} blueUpLevel={blueUpLevel} />
-        {dealerPosition} {gamePhase} {players.obs.currentRound.length}
-        {players.obs.recCards.length}
+        {gamePhase} {currentPlayer}
+
+
+        <ScorePanel points={points}
+          rulingParty={players[dealerPosition]?.camp}
+          redUpLevel={redUpLevel}
+          blueUpLevel={blueUpLevel} />
         {/* 北方玩家区域 */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 transform transition-transform hover:scale-105">
           <CardArea
@@ -913,12 +954,12 @@ export default function Home() {
                   <div key={pos} className="flex items-center justify-between text-xs text-white mb-1">
                     <span>
                       {pos === 'north' ? '北' : pos === 'south' ? '南' : pos === 'east' ? '东' : '西'}
-                      {cards.length > 1 && `(${cards.length}张)`}:
+                      {cards.length > 1 && `(${cards.length}张1)`}:
                     </span>
                     <div className="flex space-x-1">
                       {cards.map((card, index) => (
                         <div key={index} className="transform scale-75">
-                          <Card card={card} />
+                          <Card card={card} />1
                         </div>
                       ))}
                     </div>

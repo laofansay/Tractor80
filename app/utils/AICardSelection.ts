@@ -12,7 +12,7 @@ import { Position } from '../components/constant/Constant';
  * @param trumpSuit 主牌花色
  * @returns 正数表示card1大，负数表示card2大，0表示相等
  */
-const compareCards = (card1: string, card2: string, leadingSuit: string, trumpSuit: string | null): number => {
+const compareCards = (card1: [], card2: [], leadingSuit: string, trumpSuit: string | null): number => {
     const suit1 = card1.charAt(0);
     const suit2 = card2.charAt(0);
     const value1 = card1.substring(1);

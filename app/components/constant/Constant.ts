@@ -10,3 +10,14 @@ type Player = {
     isObs?: boolean;
     camp: Camp | null;
 };
+
+
+interface Point {
+    cards: string[]; // 存储分数卡牌信息
+    scores: number;  // 该阵营的总分数
+    swap: boolean,    //是否交换库庄家
+    offsetLevel: number, //升级偏移值
+}
+
+
+// 定义 Points（分数数据）类型

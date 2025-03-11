@@ -7,12 +7,13 @@ type CardProps = {
 
 export function Card({ card, size = 'normal' }: CardProps) {
   // 解析卡牌字符串，例如 "H10" 表示红桃10
+  if (!card) return null;
   const suit = card.charAt(0);
   const value = card.substring(1);
-  
+
   // 根据花色确定颜色
   const getSuitColor = () => {
-    switch(suit) {
+    switch (suit) {
       case 'H': // 红桃
       case 'D': // 方块
         return 'text-red-500';
@@ -27,10 +28,10 @@ export function Card({ card, size = 'normal' }: CardProps) {
         return 'text-gray-800';
     }
   };
-  
+
   // 获取花色符号
   const getSuitSymbol = () => {
-    switch(suit) {
+    switch (suit) {
       case 'H': return '♥';
       case 'D': return '♦';
       case 'S': return '♠';
@@ -40,13 +41,13 @@ export function Card({ card, size = 'normal' }: CardProps) {
       default: return '';
     }
   };
-  
+
   // 获取卡牌值显示
   const getValueDisplay = () => {
     if (suit === 'J') return '王';
     if (suit === 'B') return '王';
-    
-    switch(value) {
+
+    switch (value) {
       case '1': return 'A';
       case '11': return 'J';
       case '12': return 'Q';
@@ -54,12 +55,12 @@ export function Card({ card, size = 'normal' }: CardProps) {
       default: return value;
     }
   };
-  
+
   // 根据size属性确定卡牌尺寸
-  const sizeClasses = size === 'small' 
-    ? 'w-8 h-12 text-xs' 
+  const sizeClasses = size === 'small'
+    ? 'w-8 h-12 text-xs'
     : 'w-12 h-16';
-  
+
   return (
     <div className={`${sizeClasses} bg-white rounded-md shadow-md flex flex-col items-center justify-center ${getSuitColor()} relative overflow-hidden border border-gray-300 hover:shadow-lg transition-shadow cursor-pointer`}>
       <div className="absolute top-1 left-1 text-xs font-bold">
