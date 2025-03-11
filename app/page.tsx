@@ -271,6 +271,7 @@ export default function Home() {
     const positions: Position[] = ['north', 'east', 'south', 'west'];
     let cardIndex = 0;
     let playerIndex = 0;
+    let isDealerPosition = false;
 
     // 创建发牌动画函数
     const dealNextCard = () => {
@@ -278,7 +279,6 @@ export default function Home() {
         const position = positions[playerIndex];
         //发出的牌
         const card = obsCards.shift(); // 从obsCards中移除第一张牌
-
         if (card) {
           // 播放发牌音效
           if (soundLoaded) {
@@ -302,16 +302,27 @@ export default function Home() {
 
           // 在每发一张牌后直接调用declareTrump函数
           // 只有在庄家未确定且处于发牌阶段时才尝试亮主
-          if (dealerPosition === null) {
-            declareTrump(position, card);
+          if (!isDealerPosition) {
+            // 使用返回值判断亮主是否成功
+            const result = declareTrump(position, card);
+            isDealerPosition = result.success;
+            // 继续发下一张牌
+            setTimeout(dealNextCard, 100);
+          } else {
+            // 已经有庄家，继续发牌
+            setTimeout(dealNextCard, 100);
           }
-
-          // 继续发下一张牌
-          setTimeout(dealNextCard, 100);
         }
       } else {
-        // 发牌完成后，如果还没有亮主，则设置为亮主阶段, 否则设置为拾度阶段
-
+        // 发牌完成后，如果还没有亮主，则设置为亮主阶段, 否则设置为拾底阶段
+        if (!isDealerPosition) {
+          // 没有玩家亮主，进入亮主阶段
+          setGamePhase('trumpSelection');
+        } else {
+          // 已经有庄家，进入拾底阶段
+          setGamePhase('pickBottomCards');
+          setCurrentPlayer(dealerPosition); // 设置当前玩家为庄家
+        }
       }
     };
     // 开始发牌动画
@@ -322,18 +333,22 @@ export default function Home() {
 
 
   // 选择庄家并设置主牌花色，亮主
-  const declareTrump = (position: Position, card?: string) => {
+  const declareTrump = (position: Position, card?: string): { success: boolean; } => {
     // 如果已经有庄家了，直接返回，避免重复亮主
-    if (dealerPosition !== null) return;
+    if (dealerPosition !== null) return { success: false };
 
     // 使用本地变量跟踪当前设置的庄家，避免依赖异步状态更新
     const newPlayers = { ...players };
     console.log('亮主计算:', position);
 
+    // 再次检查是否已经有庄家，防止多个bot玩家同时亮主
+    // 这是一个额外的安全检查，因为React状态更新是异步的
+    if (dealerPosition !== null) return { success: false };
+
     const suits = ['S', 'H', 'D', 'C'];
     const playerCards = newPlayers[position].cards;
     // 机器人玩家的亮主逻辑
-    if (playerCards.length < 1) return;
+    if (playerCards.length < 1) return { success: false };
     if (newPlayers[position].isBot) {
       // 检查每种花色
       for (const suit of suits) {
@@ -344,24 +359,27 @@ export default function Home() {
           // 检查是否有该花色的5、10或K
           const has5_10_K = playerCards.some(c =>
             c.charAt(0) === suit && ['5', '10', 'K'].includes(c.substring(1)));
-          // 如果该花色牌数量至少有2张或有5、10、K中任意一张，则亮主
-          if (sameSuitCards.length >= 3 && has5_10_K) {
+          // 如果该花色牌数量至少有3张且有5、10、K中任意一张，则亮主
+          if (sameSuitCards.length >= 1 && has5_10_K) {
+            // 最后一次检查是否已经有庄家
+            if (dealerPosition !== null) return { success: false };
+
             setAvailableSuits([suit]);
 
             // 使用本地变量记录庄家位置，避免依赖异步状态更新
             const currentDealerPosition = position;
-            setDealerPosition(currentDealerPosition);
 
             newPlayers[position].isDealer = true;
             newPlayers[position].trumpSuit = suit;
             newPlayers[position].isDdeclareTrump = true;
             newPlayers.obs.trumpSuit = suit;
-
-            setGamePhase('pickBottomCards');
+            setDealerPosition(position); // 更新庄家位置
             setCurrentPlayer(currentDealerPosition); // 设置当前玩家为庄家
             // 更新界面 - 修正为更新整个players对象
             setPlayers(newPlayers);
-            break;
+
+            // 亮主后立即返回成功结果，确保不会继续检查其他花色
+            return { success: true };
           }
         }
       }
@@ -374,6 +392,9 @@ export default function Home() {
         //setGamePhase('trumpSelection'); // 设置为亮主阶段
       }
     }
+
+    // 默认返回未亮主成功
+    return { success: false };
   };
 
 
@@ -406,21 +427,27 @@ export default function Home() {
 
   //玩家选择花色亮主
   const selectTrump = (suit: string | null) => {
+    // 如果已经有庄家了或者不在亮主阶段，直接返回
+    if (dealerPosition !== null) return;
+    if (gamePhase !== 'trumpSelection') return;
     console.log('玩家算主:', suit);
+
+    // 再次检查是否已经有庄家，防止多个玩家同时亮主
+    if (dealerPosition !== null) return;
 
     setAvailableSuits([suit]);
     const newPlayers = { ...players };
     // 使用本地变量记录庄家位置，避免依赖异步状态更新
-    setDealerPosition('south');
-    newPlayers.south.isDealer = true;
-    newPlayers.south.trumpSuit = suit;
-    newPlayers.south.isDdeclareTrump = true;
+    const currentDealerPosition = 'south'; // 玩家位置固定为south
+    setDealerPosition(currentDealerPosition);
+    newPlayers[currentDealerPosition].isDealer = true;
+    newPlayers[currentDealerPosition].trumpSuit = suit;
+    newPlayers[currentDealerPosition].isDdeclareTrump = true;
     newPlayers.obs.trumpSuit = suit;
     setGamePhase('pickBottomCards');
-    setCurrentPlayer(newPlayers.south); // 设置当前玩家为庄家
+    setCurrentPlayer(currentDealerPosition); // 设置当前玩家为庄家
     // 更新界面 - 修正为更新整个players对象
     setPlayers(newPlayers);
-
   };
 
 
@@ -608,7 +635,7 @@ export default function Home() {
       <div className="relative w-full max-w-6xl aspect-square p-12 rounded-3xl bg-green-800/30 backdrop-blur-md shadow-2xl border border-green-600/20">
         {/* 得分面板 */}
         <ScorePanel scores={scores} dealerPosition={dealerPosition} redUpLevel={redUpLevel} blueUpLevel={blueUpLevel} />
-
+        {dealerPosition} {gamePhase}
         {/* 北方玩家区域 */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 transform transition-transform hover:scale-105">
           <CardArea

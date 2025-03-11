@@ -10,20 +10,12 @@ type TrumpSelectionPanelProps = {
 };
 
 export function TrumpSelectionPanel({ onSelectTrump, gamePhase, availableSuits, trumpSuit }: TrumpSelectionPanelProps) {
-  // 只在亮主阶段显示
-  if (gamePhase !== 'trumpSelection') {
-    //return null;
-  }
-  const selectTrump = (suit: string | null) => {
-    console.log('玩家亮主:', suit);
-    if (gamePhase !== 'trumpSelection') return;
+  // 检查是否已经选择了主牌
+  const hasTrumpSelected = trumpSuit !== '';
 
-    // 设置主牌花色
-  }
   return (
     <div className="absolute bottom-4 left-4 p-3 bg-gray-800/70 rounded-lg backdrop-blur-md border border-gray-700/50 shadow-lg">
       <div className="flex flex-col gap-2">
-        <div>{availableSuits}</div>
         <div className="flex flex-row gap-2">
           <button
             onClick={() => onSelectTrump('NT')}
