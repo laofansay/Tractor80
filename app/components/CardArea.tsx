@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card } from './Card';
+import { sortCards } from '../utils/poker';
 
 
 type CardAreaProps = {
@@ -11,60 +12,25 @@ type CardAreaProps = {
     gamePhase: GamePhase;
     isCurrentPlayer?: boolean;
     trumpSuit?: string | null; // 添加主牌花色属性
+    trumpPoint?: string | null; // 添加主牌花色属性
     isTrumpSuit?: boolean; // 添加主牌花色属性
     onDeclare: () => void;
     onPlayCard: (cards: string[]) => void;
     onSelectBottomCards?: (selectedCards: string[]) => void;
 };
 
-// 卡牌排序函数
-const sortCards = (cards: string[]) => {
-    // 定义花色顺序：大王(B)、小王(J)、黑桃(S)、红桃(H)、梅花(C)、方块(D)
-    const suitOrder: Record<string, number> = {
-        'B': 0, // 大王
-        'J': 1, // 小王
-        'S': 2, // 黑桃
-        'H': 3, // 红桃
-        'C': 4, // 梅花
-        'D': 5  // 方块
-    };
 
-    // 定义点数顺序：A(1)最大，2最小
-    const getCardValue = (value: string) => {
-        if (value === '0') return 100; // 王牌
-        const numValue = parseInt(value);
-        // 将A设为最大，然后K、Q、J、10...2依次递减
-        if (numValue === 1) return 14; // A牌
-        return numValue; // 其他牌
-    };
-
-    return [...cards].sort((a, b) => {
-        const suitA = a.charAt(0);
-        const suitB = b.charAt(0);
-        const valueA = a.substring(1);
-        const valueB = b.substring(1);
-
-        // 先按花色排序
-        if (suitA !== suitB) {
-            return suitOrder[suitA] - suitOrder[suitB];
-        }
-
-        // 同花色按点数从大到小排序
-        return getCardValue(valueB) - getCardValue(valueA);
-    });
-};
 
 export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false,
     trumpSuit,
+    trumpPoint,
     isTrumpSuit = false,
     onPlayCard, onSelectBottomCards }: CardAreaProps) {
     // 用于跟踪扣底阶段选中的卡牌
     const [selectedCards, setSelectedCards] = useState < string[] > ([]);
 
     // 使用useMemo对卡牌进行排序，避免每次渲染都重新排序
-    const sortedCards = useMemo(() => sortCards(cards), [cards]);
-
-
+    const sortedCards = useMemo(() => sortCards(cards, trumpSuit ?? 'NT', trumpPoint ?? '2'), [cards]);
 
     // 处理卡牌点击
     const handleCardClick = (card: string) => {

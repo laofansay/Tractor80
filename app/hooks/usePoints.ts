@@ -42,5 +42,5 @@ export function usePoints() {
         }));
     };
 
-    return { points, addCardToCamp，cleanPoint };
+    return { points, addCardToCamp, cleanPoint };
 }

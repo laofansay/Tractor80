@@ -9,18 +9,19 @@ import { ScorePanel } from './components/ScorePanel';
 import { TrumpSelectionPanel } from './components/TrumpSelectionPanel';
 import { selectCardsToPlay } from './utils/AICardSelection';
 import { validateCardPlay } from './utils/gameRules';
-import { usePoints } from "./hooks/usePoints"; // 假设 usePoints Hook 已定义
+import { usePoints, } from "./hooks/usePoints"; // 假设 usePoints Hook 已定义
 
 
 import { GamePhase, Position, Player } from './components/constant/Constant';
-import { compareCards } from './utils/cardUtils';
+import { compareCards, shuffleDeck, isValidPlay, deck, getCardType, calculateScore, sortCards, getCardOrderValue } from "./utils/poker";
+
 
 
 
 export default function Home() {
 
 
-  const { points, addCardToCamp } = usePoints();
+  const { points, addCardToCamp, cleanPoint } = usePoints();
 
   // 游戏状态管理
   const [gamePhase, setGamePhase] = useState < GamePhase > ('initial');
@@ -148,7 +149,7 @@ export default function Home() {
       setMasterPlayerRound(position)
     } else {
       const masterPlayerRoundCard = newPlayers.obs.currentRound[masterPlayerRound];
-      const result = compareCards(masterPlayerRoundCard, cards, newPlayers.obs.trumpSuit);
+      const result = compareCards(masterPlayerRoundCard, cards, newPlayers.obs.trumpSuit, redUpLevel);
       // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
       if (result > 0) {
         console.log(position, '玩家出的牌小')
@@ -261,32 +262,9 @@ export default function Home() {
 
   // 初始化牌堆
   const initializeDeck = () => {
-    // 创建一副54张牌的扑克牌（包括大小王）
-    const suits = ['S', 'H', 'D', 'C']; // 使用字母代码：S-黑桃，H-红桃，D-方块，C-梅花
-    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-    const newDeck: string[] = [];
-
-    // 添加普通牌
-    for (const suit of suits) {
-      for (const value of values) {
-        // 将A转换为1，以便于排序
-        const cardValue = value === 'A' ? '1' : value;
-        newDeck.push(`${suit}${cardValue}`);
-      }
-    }
-
-    // 添加大小王
-    newDeck.push('J0'); // 小王
-    newDeck.push('B0'); // 大王
-
-    // 洗牌算法 (Fisher-Yates shuffle)
-    for (let i = newDeck.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
-    }
-
     // 更新状态
     setGamePhase('initial');
+    const shuffledDeck = shuffleDeck(deck);
 
     // 重置玩家状态，将所有牌发给OBS玩家，同OBS执行所有的，发牌..操作 玩家设置为庄家
     setPlayers({
@@ -295,7 +273,7 @@ export default function Home() {
       south: { cards: [], isDealer: false, isBot: false, camp: 'red' },
       west: { cards: [], isDealer: false, isBot: true, camp: 'blue' },
       obs: {
-        cards: newDeck, isDealer: false, isObs: true, camp: null,
+        cards: shuffledDeck, isDealer: false, isObs: true, camp: null,
         currentRound: { north: [], east: [], south: [], west: [] },
         lastRound: { north: [], east: [], south: [], west: [] },
         recCards: [],
