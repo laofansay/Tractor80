@@ -85,9 +85,24 @@ const getCardValue = (card: string, trumpSuit: string, trumpPoint: string): numb
             score = 96; // **副点牌**
         }
     } else if (isTrumpSuit) {
-        score += score * 5; // **主花色的其他牌**
+        score = score + 5 * 13; // **主花色的其他牌**
     }
     return score;
+
+};
+
+// 获取第一次出牌的花色
+export const getCardSuit = (cards: string[], trumpSuit: string, trumpPoint: string): string | null => {
+
+    if (cards.length === 0) return null; // 没有牌时返回 null
+    const firstCard = cards[0]; // 获取第一张牌（应该取第一张，而不是最后一张）
+    const suit = firstCard.charAt(0); // 获取花色（首字符）
+    const value = firstCard.slice(1); // 获取点数部分
+    // 判断是否是主牌（大小王 or 主点牌）
+    if (value === trumpPoint || firstCard === "RJ" || firstCard === "BJ") {
+        return trumpSuit !== "NT" ? trumpSuit : "NT";
+    }
+    return suit; // 返回正常花色
 
 };
 
@@ -118,41 +133,13 @@ export const compareCards = (
     trumpSuit: string, // 主牌花色，如 'S'（黑桃）
     trumpPoint: string // 主牌点数，如 '5'
 ): number => {
-    const type1 = getCardType(hand1, trumpSuit, trumpPoint);
-    const type2 = getCardType(hand2, trumpSuit, trumpPoint);
-    if (type1 !== type2) return -1; // 只能比较相同牌型
-    //点数大的 或同点的，先出的大
-    return getCardValue(hand1[0], trumpSuit, trumpPoint) - getCardValue(hand2[0], trumpSuit, trumpPoint)
-
+    // 计算 hand1 和 hand2 的总分
+    const hand1Score = hand1.reduce((total, card) => total + getCardValue(card, trumpSuit, trumpPoint), 0);
+    const hand2Score = hand2.reduce((total, card) => total + getCardValue(card, trumpSuit, trumpPoint), 0);
+    console.log(hand1, hand1Score, hand2, hand2Score);
+    return hand1Score >= hand2Score ? 0 : 1;
 };
 
-// 检查单张或多张卡牌是否为主牌（王牌也算主牌）
-export const areTrumpCards = (cards: string[], trumpSuit: string, trumpPoint: string): boolean => {
-    return cards.some(card => isTrump(card, trumpSuit, trumpPoint));
-};
-
-// 检查单张卡牌是否为主牌（王牌也算主牌）
-export const isTrump = (card: string, trumpSuit: string, trumpPoint: string): boolean => {
-    // 王牌判断
-    if (card === 'RJ' || card === 'BJ') {
-        return true; // 小王或大王
-    }
-
-    const suit = card.charAt(0); // 获取花色
-    const value = card.slice(1); // 获取牌面点数
-
-    // 主花色判断
-    if (suit === trumpSuit) {
-        return true; // 该花色是主花色
-    }
-
-    // 主点数判断
-    if (value === trumpPoint) {
-        return true; // 该点数是主点数
-    }
-
-    return false; // 如果没有符合条件，则不是主牌
-};
 
 // 判断是否为有效出牌
 export const isValidPlay = (current: string[], previous: string[] | null, trumpSuit: string, trumpPoint: string): boolean => {

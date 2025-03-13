@@ -32,6 +32,7 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     // 使用useMemo对卡牌进行排序，避免每次渲染都重新排序
     const sortedCards = useMemo(() => sortCards(cards, trumpSuit ?? 'NT', trumpPoint ?? '2'), [cards]);
 
+    
     // 处理卡牌点击
     const handleCardClick = (card: string) => {
         if (gamePhase === 'playing') {

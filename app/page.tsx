@@ -13,7 +13,8 @@ import { usePoints, } from "./hooks/usePoints"; // 假设 usePoints Hook 已定�
 
 
 import { GamePhase, Position, Player } from './components/constant/Constant';
-import { compareCards, shuffleDeck, isValidPlay, deck, getCardType, calculateScore, sortCards, getCardOrderValue } from "./utils/poker";
+import { compareCards, shuffleDeck, getCardSuit, isValidPlay, deck, getCardType, calculateScore, sortCards, getCardOrderValue } from "./utils/poker";
+import { useGameRoundTracker } from './hooks/useRoundTracker';
 
 
 
@@ -22,6 +23,8 @@ export default function Home() {
 
 
   const { points, addCardToCamp, cleanPoint } = usePoints();
+
+  const { roundState, setLeadingSuit, setLeadingPlayer, setCardTypes, nextRound } = useGameRoundTracker();
 
   // 游戏状态管理
   const [gamePhase, setGamePhase] = useState < GamePhase > ('initial');
@@ -144,16 +147,17 @@ export default function Home() {
 
     //与之前出牌玩量最大的牌比大于
 
-    if (masterPlayerRound == null) {
+
+    if (roundState.leadingPlayer == null) {
       //他是第一个出牌的
-      setMasterPlayerRound(position)
+      setLeadingSuit(getCardSuit(cards, newPlayers.obs.trumpSuit, redUpLevel) ?? "NT");
+      setLeadingPlayer(position);
+      setCardTypes(cards);
+
     } else {
-      const masterPlayerRoundCard = newPlayers.obs.currentRound[masterPlayerRound];
-      const result = compareCards(masterPlayerRoundCard, cards, newPlayers.obs.trumpSuit, redUpLevel);
+      const result = compareCards(newPlayers.obs.currentRound[roundState.leadingPlayer], cards, newPlayers.obs.trumpSuit, redUpLevel);
       // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
-      if (result > 0) {
-        console.log(position, '玩家出的牌小')
-      } else {
+      if (result >= 1) {
         setMasterPlayerRound(position)
       }
 
@@ -169,12 +173,12 @@ export default function Home() {
       //本轮牌最大的完成
       //闲家得分 和庄家是不是一个阵营的，不是则抓分
       if (newPlayers[masterPlayerRound].camp !== newPlayers[dealerPosition].camp) {
-        Object.values(newPlayers.obs.currentRound).flat().forEach(card => {
-          // 提取 card 的数值部分（去掉花色）
-          let cardValue = card.slice(1); // 去掉第一个字符（花色）
-          // 判断是否符合条件
-          if (cardValue === '5' || cardValue === '10' || cardValue === 'K') {
-            addCardToCamp(newPlayers[masterPlayerRound].camp, card, cardValue === '5' ? 5 : 10)
+        Object.values(newPlayers.obs.currentRound).flat().forEach(e => {
+          if (typeof e === "string") {
+            let cardValue = e.slice(1); // 去掉花色
+            if (cardValue === '5' || cardValue === '10' || cardValue === 'K') {
+              addCardToCamp(newPlayers[masterPlayerRound].camp, e, cardValue === '5' ? 5 : 10);
+            }
           }
         });
       }
@@ -265,6 +269,7 @@ export default function Home() {
     // 更新状态
     setGamePhase('initial');
     const shuffledDeck = shuffleDeck(deck);
+
 
     // 重置玩家状态，将所有牌发给OBS玩家，同OBS执行所有的，发牌..操作 玩家设置为庄家
     setPlayers({
@@ -758,29 +763,6 @@ export default function Home() {
     console.log('AI玩家选择扣底牌:', selectedCards);
     return selectedCards;
   };
-
-
-
-  // 处理升级点数的函数
-  const handleUpgrade = (camp: 'red' | 'blue') => {
-    // 升级点数顺序：2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K, A, 王
-    const upgradeOrder = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', 'NT'];
-
-    if (camp === 'red') {
-      const currentIndex = upgradeOrder.indexOf(redUpLevel);
-      if (currentIndex < upgradeOrder.length - 1) {
-        setRedUpLevel(upgradeOrder[currentIndex + 1]);
-      }
-    } else {
-      const currentIndex = upgradeOrder.indexOf(blueUpLevel);
-      if (currentIndex < upgradeOrder.length - 1) {
-        setBlueUpLevel(upgradeOrder[currentIndex + 1]);
-      }
-    }
-  };
-
-
-
 
 
   return (

@@ -1,15 +1,10 @@
 import React from 'react';
 import { Card } from './Card';
 import { Crown } from "lucide-react";
+import { ScorePanelProps } from './components/Constant'
 
 
-interface ScorePanelProps {
-  points: Points;
-  rulingParty: Camp,
-  redUpLevel: string;
-  blueUpLevel: string;
 
-}
 
 export function ScorePanel({ points, rulingParty, redUpLevel, blueUpLevel }: ScorePanelProps) {
   // 计算红蓝阵营的总分

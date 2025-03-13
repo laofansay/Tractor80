@@ -20,4 +20,10 @@ interface Point {
 }
 
 
-// 定义 Points（分数数据）类型
+interface ScorePanelProps {
+    points: Points;
+    rulingParty: Camp,
+    redUpLevel: string;
+    blueUpLevel: string;
+
+}
