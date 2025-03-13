@@ -154,6 +154,7 @@ export default function Home() {
       setLeadingPlayer(position);
       setCardTypes(cards);
 
+
     } else {
       const result = compareCards(newPlayers.obs.currentRound[roundState.leadingPlayer], cards, newPlayers.obs.trumpSuit, redUpLevel);
       // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
