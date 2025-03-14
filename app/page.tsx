@@ -24,7 +24,7 @@ export default function Home() {
 
   const { points, addCardToCamp, cleanPoint } = usePoints();
 
-  const { roundState, setLeadingSuit, setLeadingPlayer, setCardTypes, nextRound } = useGameRoundTracker();
+  const { roundState, setLeadingSuit, setLeadingPlayer, setCardGroup, nextRound } = useGameRoundTracker();
 
   // 游戏状态管理
   const [gamePhase, setGamePhase] = useState < GamePhase > ('initial');
@@ -47,12 +47,8 @@ export default function Home() {
   const [dealerPosition, setDealerPosition] = useState < Position | null > (null);
   const [currentPlayer, setCurrentPlayer] = useState < Position | null > (null);
 
-  const [roundCount, setRoundCount] = useState < number > (0);
   // 可选择的主牌花色状态
   const [availableSuits, setAvailableSuits] = useState < string[any] > ([]);
-
-  //本回合中谁也的牌最大
-  const [masterPlayerRound, setMasterPlayerRound] = useState < Position | null > (null);
 
   // 添加显示上一回合状态
   const [showLastRound, setShowLastRound] = useState < boolean > (false);
@@ -148,18 +144,18 @@ export default function Home() {
     //与之前出牌玩量最大的牌比大于
 
 
-    if (roundState.leadingPlayer == null) {
+    if (roundState.leadingPlayer == "") {
       //他是第一个出牌的
       setLeadingSuit(getCardSuit(cards, newPlayers.obs.trumpSuit, redUpLevel) ?? "NT");
       setLeadingPlayer(position);
-      setCardTypes(cards);
+      setCardGroup(cards,newPlayers.obs.trumpSuit, redUpLevel);
 
 
     } else {
       const result = compareCards(newPlayers.obs.currentRound[roundState.leadingPlayer], cards, newPlayers.obs.trumpSuit, redUpLevel);
       // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
       if (result >= 1) {
-        setMasterPlayerRound(position)
+        setLeadingPlayer(position);
       }
 
     }
@@ -171,41 +167,10 @@ export default function Home() {
     );
     //当前回合结束
     if (allPlayersPlayed) {
-      //本轮牌最大的完成
-      //闲家得分 和庄家是不是一个阵营的，不是则抓分
-      if (newPlayers[masterPlayerRound].camp !== newPlayers[dealerPosition].camp) {
-        Object.values(newPlayers.obs.currentRound).flat().forEach(e => {
-          if (typeof e === "string") {
-            let cardValue = e.slice(1); // 去掉花色
-            if (cardValue === '5' || cardValue === '10' || cardValue === 'K') {
-              addCardToCamp(newPlayers[masterPlayerRound].camp, e, cardValue === '5' ? 5 : 10);
-            }
-          }
-        });
-      }
-
-      newPlayers.obs = {
-        ...newPlayers.obs,
-        recRound: [
-          ...(newPlayers.obs.recRound || []), // 追加到 recRound
-          ...Object.values(newPlayers.obs.lastRound).flat() // lastRound 的所有牌合并
-        ],
-        lastRound: { ...newPlayers.obs.currentRound },
-        currentRound: []
-      };
-      setPlayers(newPlayers);
-
-      // 增加回合计数
-      setRoundCount(roundCount + 1);
-      //本回合出牌最在的玩家为当前玩家
-      setCurrentPlayer(masterPlayerRound);
-      setMasterPlayerRound(null);
-    } else {
-      // 设置下一个出牌玩家
-      const nextPlayer = getNextPlayer(position);
-      setCurrentPlayer(nextPlayer);
+      nextRound();
     }
-
+    const nextPlayer = getNextPlayer(position);
+    setCurrentPlayer(nextPlayer);
 
 
     // 检查游戏是否结束（所有玩家手牌都出完）
@@ -216,7 +181,7 @@ export default function Home() {
     if (isGameOver) {
       // 游戏结束，显示结果
       setTimeout(() => {
-        if (confirm(`游戏结束！共进行了${roundCount + 1}回合。\n\n是否要开始新的游戏？`)) {
+        if (confirm(`游戏结束！共进行了${roundState.roundNumber }回合。\n\n是否要开始新的游戏？`)) {
           // 重新开始游戏
           initializeDeck();
           cleanPoint('red');
@@ -225,6 +190,40 @@ export default function Home() {
       }, 500); // 稍微延迟，让最后一张牌的状态更新完成
     }
   };
+  useEffect(() => {
+    if (!roundState.leadingPlayer) return; // 确保 leadingPlayer 已经有值
+  
+      const newPlayers = { ...players };
+      const leadingCamp = newPlayers[roundState.leadingPlayer]?.camp; // 现在可以安全访问
+      const dealerCamp = newPlayers[dealerPosition]?.camp;
+  
+      if (leadingCamp !== dealerCamp) {
+        Object.values(newPlayers.obs.currentRound).forEach(cards => {
+          cards.forEach(card => {
+            const cardValue = card.slice(1);
+            if (["5", "10", "K"].includes(cardValue)) {
+              addCardToCamp(leadingCamp, card, cardValue === '5' ? 5 : 10);
+            }
+          });
+        });
+      }
+      newPlayers.obs = {
+        ...newPlayers.obs,
+        recRound: [
+          ...(newPlayers.obs.recRound || []), // 追加到 recRound
+          ...Object.values(newPlayers.obs.lastRound).flat() // lastRound 的所有牌合并
+        ],
+        lastRound: { ...newPlayers.obs.currentRound },
+        currentRound: []
+      };
+      setPlayers(newPlayers);
+      //本回合出牌最在的玩家为当前玩家
+      setCurrentPlayer(roundState.leadingPlayer);
+      setLeadingSuit('NT');
+
+  }, [roundState.roundNumber]); //
+
+
 
   // 获取下一个玩家位置
   const getNextPlayer = (currentPos: Position): Position => {
@@ -290,7 +289,7 @@ export default function Home() {
     // 重置其他游戏状态
     setDealerPosition(null);
     setCurrentPlayer(null);
-    setRoundCount(0);
+    
     // 重置得分和升级点数
     setScores({
       north: 0,
@@ -895,14 +894,14 @@ export default function Home() {
             <div className="mt-4 w-full px-4">
               <div
                 className="text-green-200 text-sm mb-2 font-semibold cursor-pointer hover:text-yellow-200 transition-colors"
-                onClick={() => roundCount > 0 && setShowLastRound(!showLastRound)}
-                title={roundCount > 0 ? "点击查看上一回合出牌情况" : ""}
+                onClick={() => roundState.roundNumber > 1 && setShowLastRound(!showLastRound)}
+                title={roundState.roundNumber > 1 ? "点击查看上一回合出牌情况" : ""}
               >
-                第{roundCount + 1}回合
+                第{roundState.roundNumber }回合
                 {Object.values(players).every(player => player.cards.length === 0) &&
                   <span className="ml-2 text-yellow-300">(最终回合)</span>
                 }
-                {roundCount > 0 && (
+                {roundState.roundNumber > 1 && (
                   <span className="ml-2 text-xs text-blue-300">
                     {showLastRound ? "[收起上一回合]" : "[查看上一回合]"}
                   </span>
@@ -929,9 +928,9 @@ export default function Home() {
               ))}
 
               {/* 显示上一回合出牌情况 */}
-              {showLastRound && roundCount > 0 && (
+              {showLastRound && roundState.roundNumber > 1 && (
                 <div className="bg-green-900/50 p-2 rounded-md">
-                  <div className="text-yellow-300 text-xs mb-2">第{roundCount}回合出牌记录:</div>
+                  <div className="text-yellow-300 text-xs mb-2">第{roundState.roundNumber}回合出牌记录:</div>
                   {Object.entries(players.obs.lastRound).map(([pos, cards]) => (
                     cards.length > 0 && (
                       <div key={pos} className="flex items-center justify-between text-xs text-white mb-1">

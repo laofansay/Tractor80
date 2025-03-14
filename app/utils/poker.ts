@@ -113,6 +113,14 @@ export const calculateScore = (cards: string[], trumpSuit: string, trumpPoint: s
         return sum + (scoreCards.has(value) ? getCardValue(card, trumpSuit, trumpPoint) : 0);
     }, 0);
 };
+// 计算牌的分值
+export const calculateScorPoint = (cards: string[], trumpSuit: string, trumpPoint: string): Record<string, number>  => {
+    const cardMap: Record<string, number> = {}; 
+     cards.map(card => {
+        cardMap[card]= getCardValue(card, trumpSuit, trumpPoint) ;
+    });
+    return cardMap;
+};
 
 // 判断牌型
 export const getCardType = (cards: string[], trumpSuit: string, trumpPoint: string): CardType => {
@@ -137,7 +145,7 @@ export const compareCards = (
     const hand1Score = hand1.reduce((total, card) => total + getCardValue(card, trumpSuit, trumpPoint), 0);
     const hand2Score = hand2.reduce((total, card) => total + getCardValue(card, trumpSuit, trumpPoint), 0);
     console.log(hand1, hand1Score, hand2, hand2Score);
-    return hand1Score >= hand2Score ? 0 : 1;
+    return hand2Score > hand1Score ? 1 : 0;
 };
 
 

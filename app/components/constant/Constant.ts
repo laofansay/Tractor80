@@ -1,8 +1,8 @@
-type GamePhase = 'initial' | 'dealing' | 'trumpSelection' | 'pickBottomCards' | 'bottomCards' | 'playing';
-type Position = 'north' | 'east' | 'south' | 'west' | 'obs';
-type Camp = 'red' | 'blue';
+export type GamePhase = 'initial' | 'dealing' | 'trumpSelection' | 'pickBottomCards' | 'bottomCards' | 'playing';
+export type Position = 'north' | 'east' | 'south' | 'west' | 'obs';
+export type Camp = 'red' | 'blue';
 
-type Player = {
+export type Player = {
     cards: string[];
     isDealer: boolean;
     selectedCards?: string[];
@@ -12,7 +12,7 @@ type Player = {
 };
 
 
-interface Point {
+export interface Point {
     cards: string[]; // 存储分数卡牌信息
     scores: number;  // 该阵营的总分数
     swap: boolean,    //是否交换库庄家
@@ -20,10 +20,19 @@ interface Point {
 }
 
 
-interface ScorePanelProps {
-    points: Points;
-    rulingParty: Camp,
-    redUpLevel: string;
-    blueUpLevel: string;
+export interface ScorePanelProps {
+    points: {
+      red: {
+        scores: number;
+        cards: any[];
+      };
+      blue: {
+        scores: number;
+        cards: any[];
+      };
+    };
+    rulingParty: "red" | "blue" | string;
+    redUpLevel: number;
+    blueUpLevel: number;
+  }
 
-}

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { calculateScorPoint } from "../utils/poker";
+import { Suit } from "../utils/poker";
+import { Position } from "../components/constant/Constant";
 
-// 出牌类型（支持多种组合）
+// 出牌类型
 export enum CardType {
     SINGLE = "单张",
     PAIR = "对子",
@@ -16,44 +17,46 @@ export interface CardTypeGroup {
 
 // 回合数据类型
 export interface RoundState {
-    leadingSuit: string; // 出牌花色
-    cardTypeGroup: CardTypeGroup[]; // 出牌类型及其数量的数组
-    leadingPlayer: string; // 最大玩家
+    leadingSuit: Suit; // 出牌花色
+    leadingTotal: number ; // 出牌花色
+    cardTypeGroup: CardTypeGroup[]; // 出牌类型及其数量
+    leadingPlayer: Position ; // 最大玩家
     roundNumber: number; // 回合数
 }
 
-// **React 组件 Hook 版本**
+// React 组件 Hook 版本
 export function useGameRoundTracker() {
-    // 使用 useState 管理 roundState
     const [roundState, setRoundState] = useState<RoundState>({
-        leadingSuit: "",
-        leadingPlayer: "",
+        leadingSuit: Suit.NT,
+        leadingTotal:0,
+        leadingPlayer: "north",
         cardTypeGroup: [],
         roundNumber: 1
     });
 
-    // 设置出牌花色
-    const setLeadingSuit = (suit: string) => {
+    const setLeadingSuit = (suit: Suit) => {
         setRoundState(prev => ({ ...prev, leadingSuit: suit }));
     };
 
-    // 设置当前最大玩家
-    const setLeadingPlayer = (player: string) => {
+   
+
+    const setLeadingPlayer = (player: Position | null) => {
         setRoundState(prev => ({ ...prev, leadingPlayer: player }));
     };
-
-    const setCardGroup = (cards: string[],trumpSuit: string, trumpPoint: string) => {
-        setRoundState(prev => ({ ...prev, cardTypeGroup: checkCardGroup(cards,trumpSuit,trumpPoint) }));
+    // 计算出牌组合
+    const setCardTypes = (cards: string[], trumpSuit: string, trumpPoint: string) => {
+        setRoundState(prev => ({
+            ...prev,
+            cardTypeGroup: checkCardGroup(cards, trumpSuit, trumpPoint)
+        }));
     };
-  
 
-        // 进入下一回合
-        const nextRound = () => {
-            setRoundState(prev => ({ ...prev, roundNumber: prev.roundNumber + 1 }));
-        };
+    // 进入下一回合
+    const nextRound = () => {
+        setRoundState(prev => ({ ...prev, roundNumber: prev.roundNumber + 1 }));
+    };
 
-        
-         // 计算每种出牌的组合
+    // 计算每种出牌的组合
     const checkCardGroup = (cards: string[], trumpSuit: string, trumpPoint: string): CardTypeGroup[] => {
         if (cards.length === 0) return [];
 
@@ -145,8 +148,8 @@ export function useGameRoundTracker() {
     return {
         roundState,
         setLeadingSuit,
-        setCardGroup,
         setLeadingPlayer,
+        setCardTypes,
         nextRound
     };
 }
