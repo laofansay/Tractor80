@@ -42,18 +42,18 @@ export function useGameRoundTracker() {
         setRoundState(prev => ({ ...prev, leadingPlayer: player }));
     };
 
-    const setCardGroup = (cards: string[],trumpSuit: string, trumpPoint: string) => {
-        setRoundState(prev => ({ ...prev, cardTypeGroup: checkCardGroup(cards,trumpSuit,trumpPoint) }));
+    const setCardGroup = (cards: string[], trumpSuit: string, trumpPoint: string) => {
+        setRoundState(prev => ({ ...prev, cardTypeGroup: checkCardGroup(cards, trumpSuit, trumpPoint) }));
     };
-  
 
-        // 进入下一回合
-        const nextRound = () => {
-            setRoundState(prev => ({ ...prev, roundNumber: prev.roundNumber + 1 }));
-        };
 
-        
-         // 计算每种出牌的组合
+    // 进入下一回合
+    const nextRound = () => {
+        setRoundState(prev => ({ ...prev, roundNumber: prev.roundNumber + 1 }));
+    };
+
+
+    // 计算每种出牌的组合
     const checkCardGroup = (cards: string[], trumpSuit: string, trumpPoint: string): CardTypeGroup[] => {
         if (cards.length === 0) return [];
 
@@ -142,11 +142,23 @@ export function useGameRoundTracker() {
         return [{ cardType: CardType.SINGLE, total: totalSingles }];
     };
 
+    // 初始化显示所有牌
+    const initializeCards = () => {
+        // 在这里添加初始化显示所有牌的逻辑
+    };
+
+    // 发牌给4名玩家
+    const dealCards = () => {
+        // 在这里添加发牌给4名玩家的逻辑，并添加动画和音效
+    };
+
     return {
         roundState,
         setLeadingSuit,
         setCardGroup,
         setLeadingPlayer,
-        nextRound
+        nextRound,
+        initializeCards,
+        dealCards
     };
 }

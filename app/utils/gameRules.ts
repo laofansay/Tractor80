@@ -3,6 +3,7 @@
  */
 
 import { Position } from '../components/constant/Constant';
+import { getCardSuit } from './poker';
 
 /**
  * 检查出牌是否符合规则
@@ -35,6 +36,27 @@ export const validateCardPlay = (
                 valid: false,
                 message: `请出${firstPlayerCardCount}张牌，与第一位出牌玩家相同`
             };
+        }
+
+        // 检查花色是否符合规则
+        const firstPlayerCards = currentRound[firstPlayer];
+        const leadingSuit = getCardSuit(firstPlayerCards, '', '2'); // 获取首出花色
+
+        // 获取当前玩家手牌中与首出花色相同的牌
+        const sameSuitCards = cards.filter(card => getCardSuit([card], '', '2') === leadingSuit);
+
+        // 如果玩家有与首出花色相同的牌，必须出该花色的牌
+        if (leadingSuit && sameSuitCards.length === 0) {
+            // 检查玩家手牌中是否有首出花色的牌
+            const playerCards = currentRound[position] || [];
+            const hasSameSuitCard = playerCards.some(card => getCardSuit([card], '', '2') === leadingSuit);
+
+            if (hasSameSuitCard) {
+                return {
+                    valid: false,
+                    message: `必须出${leadingSuit}花色的牌`
+                };
+            }
         }
     }
 

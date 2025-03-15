@@ -12,7 +12,7 @@ import { Position } from '../components/constant/Constant';
  * @param trumpSuit 主牌花色
  * @returns 正数表示card1大，负数表示card2大，0表示相等
  */
-const compareCards = (card1: [], card2: [], leadingSuit: string, trumpSuit: string | null): number => {
+const compareCards = (card1: string, card2: string, leadingSuit: string, trumpSuit: string | null): number => {
     const suit1 = card1.charAt(0);
     const suit2 = card2.charAt(0);
     const value1 = card1.substring(1);
@@ -21,8 +21,8 @@ const compareCards = (card1: [], card2: [], leadingSuit: string, trumpSuit: stri
     // 大小王最大
     if (suit1 === 'B') return 1;
     if (suit2 === 'B') return -1;
-    if (suit1 === 'J' && suit1 === '0') return 1;
-    if (suit2 === 'J' && suit2 === '0') return -1;
+    if (suit1 === 'J' && value1 === '0') return 1;
+    if (suit2 === 'J' && value2 === '0') return -1;
 
     // 主牌大于非主牌
     const isTrump1 = trumpSuit && suit1 === trumpSuit;

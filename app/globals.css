@@ -41,3 +41,40 @@ body {
 .animate-fade-in-down {
   animation: fadeInDown 0.3s ease-out forwards;
 }
+
+/* 发牌动画 */
+@keyframes flyToNorth {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(0, -150px); opacity: 0; }
+}
+
+@keyframes flyToEast {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(150px, 0); opacity: 0; }
+}
+
+@keyframes flyToSouth {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(0, 150px); opacity: 0; }
+}
+
+@keyframes flyToWest {
+  0% { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(-150px, 0); opacity: 0; }
+}
+
+.animate-fly-to-north {
+  animation: flyToNorth 0.5s ease-out forwards;
+}
+
+.animate-fly-to-east {
+  animation: flyToEast 0.5s ease-out forwards;
+}
+
+.animate-fly-to-south {
+  animation: flyToSouth 0.5s ease-out forwards;
+}
+
+.animate-fly-to-west {
+  animation: flyToWest 0.5s ease-out forwards;
+}

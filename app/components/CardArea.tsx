@@ -36,28 +36,15 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     // 使用useMemo对卡牌进行排序，避免每次渲染都重新排序
     const sortedCards = useMemo(() => sortCards(cards, trumpSuit ?? 'NT', trumpPoint ?? '2'), [cards]);
 
-    
+
     // 处理卡牌点击
     const handleCardClick = (card: string) => {
         if (gamePhase === 'playing' && isCurrentPlayer) {
-            if (position === 'south') {
-                // 南方玩家选择卡牌后自动出牌
-                if (selectedCards.includes(card)) {
-                    setSelectedCards(selectedCards.filter(c => c !== card));
-                } else {
-                    const newSelectedCards = [...selectedCards, card];
-                    setSelectedCards(newSelectedCards);
-                    // 自动出牌
-                    onPlayCard(newSelectedCards);
-                    setSelectedCards([]);
-                }
+            // 所有玩家选择卡牌后都需要点击出牌按钮
+            if (selectedCards.includes(card)) {
+                setSelectedCards(selectedCards.filter(c => c !== card));
             } else {
-                // 其他方位玩家需要点击出牌按钮
-                if (selectedCards.includes(card)) {
-                    setSelectedCards(selectedCards.filter(c => c !== card));
-                } else {
-                    setSelectedCards([...selectedCards, card]);
-                }
+                setSelectedCards([...selectedCards, card]);
             }
         } else if (gamePhase === 'bottomCards' && isDealer) {
             // 在扣底阶段，处理卡牌选择
@@ -92,9 +79,10 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     };
 
     return (
-        <div className="relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg">
-            <div className="flex flex-col items-center">
-                <div className="mb-2 text-green-100 font-medium flex items-center gap-2">
+        <div className={`relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg ${position === 'east' || position === 'west' ? 'min-w-[100px] min-h-[400Px]' : ''
+            } `}>
+            <div className={`flex ${position === 'east' || position === 'west' ? 'flex-row items-center' : 'flex-col items-center'} `}>
+                <div className={`${position === 'east' || position === 'west' ? 'mr-3' : 'mb-2'} text - green - 100 font - medium flex items - center gap - 2`}>
                     <span>
                         {position === 'north' && '北方玩家'}
                         {position === 'east' && '东方玩家'}
@@ -119,16 +107,15 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                     )}
                 </div>
 
-                <div className="flex justify-center items-center space-x-[-1.5rem] overflow-x-auto py-2 px-4 min-h-[6rem]">
-                    {sortedCards.map((card, index) => (
-                        <div
-                            key={index}
-                            onClick={() => handleCardClick(card)}
-                            className={`transform hover:translate-y-[-0.5rem] transition-transform ${(gamePhase === 'bottomCards' || (gamePhase === 'playing' && isCurrentPlayer)) && selectedCards.includes(card) ? 'translate-y-[-0.5rem] ring-2 ring-yellow-400' : ''}`}
-                        >
-                            <Card card={card} />
-                        </div>
-                    ))}
+                <div className={`flex justify - center items - center ${position === 'east' || position === 'west' ? 'flex-col space-y-[-2.5rem]' : 'space-x-[-1.5rem]'} overflow - x - auto py - 2 px - 4 min - h - [6rem]`}>                    {sortedCards.map((card, index) => (
+                    <div
+                        key={index}
+                        onClick={() => handleCardClick(card)}
+                        className={`transform ${position === 'east' ? 'rotate-90' : position === 'west' ? '-rotate-90' : ''} ${position === 'east' || position === 'west' ? 'hover:translate-x-[-0.5rem]' : 'hover:translate-y-[-0.5rem]'} transition - transform ${(gamePhase === 'bottomCards' || (gamePhase === 'playing' && isCurrentPlayer)) && selectedCards.includes(card) ? (position === 'east' || position === 'west' ? 'translate-x-[-0.5rem]' : 'translate-y-[-0.5rem]') + ' ring-2 ring-yellow-400' : ''} `}
+                    >
+                        <Card card={card} />
+                    </div>
+                ))}
                 </div>
 
 
@@ -156,6 +143,16 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                     <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-yellow-900 text-xs px-2 py-0.5 rounded-full font-medium">
                         当前出牌
                     </div>
+                )}
+
+                {/* 所有玩家出牌按钮 */}
+                {gamePhase === 'playing' && isCurrentPlayer && selectedCards.length > 0 && (
+                    <button
+                        onClick={handlePlayCards}
+                        className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-md transition-colors"
+                    >
+                        出牌
+                    </button>
                 )}
             </div>
         </div>
