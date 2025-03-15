@@ -9,6 +9,12 @@ export type Player = {
     isBot?: boolean;
     isObs?: boolean;
     camp: Camp | null;
+    isDdeclareTrump?: boolean;
+    trumpSuit?: string;
+    currentRound?: Record<Position, string[]>;
+    lastRound?: Record<Position, string[]>;
+    recCards?: string[];
+    recRound?: string[];
 };
 
 
@@ -35,4 +41,3 @@ export interface ScorePanelProps {
     redUpLevel: number;
     blueUpLevel: number;
   }
-

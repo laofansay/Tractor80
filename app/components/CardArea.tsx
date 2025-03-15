@@ -11,9 +11,11 @@ type CardAreaProps = {
     isDealer: boolean;
     gamePhase: GamePhase;
     isCurrentPlayer?: boolean;
-    trumpSuit?: string | null; // 添加主牌花色属性
-    trumpPoint?: string | null; // 添加主牌花色属性
-    isTrumpSuit?: boolean; // 添加主牌花色属性
+    trumpSuit?: string | null;
+    trumpPoint?: string | null;
+    isTrumpSuit?: boolean;
+    isFirstPlayer?: boolean;
+    isLeadingPlayer?: boolean;
     onDeclare: () => void;
     onPlayCard: (cards: string[]) => void;
     onSelectBottomCards?: (selectedCards: string[]) => void;
@@ -25,6 +27,8 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     trumpSuit,
     trumpPoint,
     isTrumpSuit = false,
+    isFirstPlayer = false,
+    isLeadingPlayer = false,
     onPlayCard, onSelectBottomCards }: CardAreaProps) {
     // 用于跟踪扣底阶段选中的卡牌
     const [selectedCards, setSelectedCards] = useState < string[] > ([]);
@@ -35,18 +39,26 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     
     // 处理卡牌点击
     const handleCardClick = (card: string) => {
-        if (gamePhase === 'playing') {
-            if (isCurrentPlayer) {
-                // 在出牌阶段，处理卡牌选择
+        if (gamePhase === 'playing' && isCurrentPlayer) {
+            if (position === 'south') {
+                // 南方玩家选择卡牌后自动出牌
                 if (selectedCards.includes(card)) {
-                    // 如果卡牌已经被选中，则取消选择
                     setSelectedCards(selectedCards.filter(c => c !== card));
                 } else {
-                    // 如果卡牌未被选中，则选择它
+                    const newSelectedCards = [...selectedCards, card];
+                    setSelectedCards(newSelectedCards);
+                    // 自动出牌
+                    onPlayCard(newSelectedCards);
+                    setSelectedCards([]);
+                }
+            } else {
+                // 其他方位玩家需要点击出牌按钮
+                if (selectedCards.includes(card)) {
+                    setSelectedCards(selectedCards.filter(c => c !== card));
+                } else {
                     setSelectedCards([...selectedCards, card]);
                 }
             }
-            // 移除了直接调用onPlayCard的部分
         } else if (gamePhase === 'bottomCards' && isDealer) {
             // 在扣底阶段，处理卡牌选择
             if (selectedCards.includes(card)) {
@@ -82,7 +94,7 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     return (
         <div className="relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg">
             <div className="flex flex-col items-center">
-                <div className="mb-2 text-green-100 font-medium flex items-center">
+                <div className="mb-2 text-green-100 font-medium flex items-center gap-2">
                     <span>
                         {position === 'north' && '北方玩家'}
                         {position === 'east' && '东方玩家'}
@@ -90,13 +102,21 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                         {position === 'west' && '西方玩家'}
                         {isDealer && ' (庄家)'}
                     </span>
-                    {/* 显示主牌花色标志 */}
                     {isTrumpSuit && (
-                        <div className='ml-2 px-2 py-0.5 rounded-full text-xs font-bold  bg-yellow-400 text-yellow-900'>
+                        <div className='px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900'>
                             亮主
                         </div>
                     )}
-
+                    {isFirstPlayer && (
+                        <div className='px-2 py-0.5 rounded-full text-xs font-bold bg-blue-400 text-blue-900'>
+                            首出
+                        </div>
+                    )}
+                    {isLeadingPlayer && (
+                        <div className='px-2 py-0.5 rounded-full text-xs font-bold bg-red-400 text-red-900'>
+                            最大
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-center items-center space-x-[-1.5rem] overflow-x-auto py-2 px-4 min-h-[6rem]">
@@ -129,18 +149,7 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                     </div>
                 )}
 
-                {/* 出牌阶段的出牌按钮 */}
-                {gamePhase === 'playing' && isCurrentPlayer && (
-                    <div className="mt-2">
-                        <button
-                            onClick={handlePlayCards}
-                            disabled={selectedCards.length === 0}
-                            className={`px-3 py-1 text-xs rounded-md ${selectedCards.length > 0 ? 'bg-blue-500 hover:bg-blue-400 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
-                        >
-                            出牌 ({selectedCards.length}张)
-                        </button>
-                    </div>
-                )}
+
 
                 {/* 当前出牌玩家指示器 */}
                 {isCurrentPlayer && gamePhase === 'playing' && (

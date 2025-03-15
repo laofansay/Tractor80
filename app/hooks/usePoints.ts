@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { Camp, Point } from "../components/constant/Constant";
 
 // 定义 Camp（阵营）类型
 // 定义 Points（分数数据）类型
 
 
 // 定义整个状态类型
-type PointsState = Record<Camp, Point>;
+export type PointsState = Record<Camp, Point>;
 
 // 定义整个状态类型
 
