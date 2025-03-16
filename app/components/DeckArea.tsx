@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Card } from './Card';
 import soundEffect from './SoundEffect';
+import { Position } from './constant/Constant';
 
 type DeckAreaProps = {
     cards: string[];
     gamePhase: string;
     onDealComplete?: () => void;
-    // 添加四个方向玩家出的牌
+    onDealCard?: (card: string, position: Position) => void;
     northPlayedCards?: string[];
     eastPlayedCards?: string[];
     southPlayedCards?: string[];
@@ -19,30 +20,31 @@ export function DeckArea({
     cards,
     gamePhase,
     onDealComplete,
+    onDealCard,
     northPlayedCards = [],
     eastPlayedCards = [],
     southPlayedCards = [],
     westPlayedCards = []
 }: DeckAreaProps) {
-    const [visibleCards, setVisibleCards] = useState < string[] > (cards);
-    const [dealingCard, setDealingCard] = useState < {
+    const [visibleCards, setVisibleCards] = useState<string[]>(cards);
+    const [dealingCard, setDealingCard] = useState<{
         card: string;
         position: string;
         isAnimating: boolean;
-    } | null > (null);
+    } | null>(null);
+    const [positionIndex, setPositionIndex] = useState(0);
 
     // 处理发牌动画
     useEffect(() => {
         if (gamePhase === 'dealing' && cards.length > 0) {
-            const positions = ['north', 'east', 'south', 'west'];
+            const positions: Position[] = ['north', 'east', 'south', 'west'];
             let cardIndex = 0;
-            let positionIndex = 0;
 
             // 预加载音效
             soundEffect.preloadSound('dealCard', '/sounds/deal-card.mp3');
 
             const dealInterval = setInterval(() => {
-                if (cardIndex >= 48) { // 54张牌发完
+                if (cardIndex >= 48) { // 发完48张牌
                     clearInterval(dealInterval);
                     setDealingCard(null);
                     if (onDealComplete) {
@@ -61,16 +63,37 @@ export function DeckArea({
                     position: positions[positionIndex],
                     isAnimating: true
                 });
+
+                console.log(currentCard,positions[positionIndex],positionIndex)
+                // 通知父组件发牌
+                if (onDealCard) {
+                    onDealCard(currentCard, positions[positionIndex],);
+                }
+
                 // 从可见牌堆中移除已发出的牌
                 setVisibleCards(prev => prev.filter(card => card !== currentCard));
+                
                 // 更新索引
-                positionIndex = (positionIndex + 1) % 4;
                 cardIndex++;
-            }, 80); // 每200毫秒发一张牌
+                setPositionIndex(prev => (prev + 1) % 4);
+            }, 100); // 每80毫秒发一张牌
+
+            // 确保每人12张牌
+            if (cardIndex === 48) {
+                const playerCards = {
+                    north: cards.slice(0, 12),
+                    east: cards.slice(12, 24),
+                    south: cards.slice(24, 36),
+                    west: cards.slice(36, 48)
+                };
+                if (onDealComplete) {
+                    onDealComplete();
+                }
+            }
 
             return () => clearInterval(dealInterval);
         }
-    }, [gamePhase, cards, onDealComplete]);
+    }, [gamePhase, cards, onDealComplete, onDealCard]);
 
     // 渲染玩家出的牌
     const renderPlayedCards = (cards: string[], position: string) => {
@@ -107,31 +130,29 @@ export function DeckArea({
 
                 {/* 中央牌堆区域 */}
                 <div className="flex flex-col items-center">
-                    <div className="text-green-100 font-medium mb-2">牌堆</div>
-                    <div className="relative w-20 h-20 flex items-center justify-center">
-                        {visibleCards.length > 0 && (
-                            <div className="absolute">
-                                {/* 显示牌堆最上面的牌 */}
-                                <Card card={visibleCards[0]} />
-
-                                {/* 显示牌堆数量 */}
-                                <div className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                                    {visibleCards.length}
-                                </div>
+                    <div className="text-green-100 font-medium mb-2 text-lg">牌堆</div>
+                    <div className="relative w-24 h-24 flex items-center justify-center bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600 rounded-lg shadow-xl">
+                        <div className="absolute">
+                            {/* 显示牌堆最上面的牌 */}
+                            <Card card={cards[0]} />
+                            {/* 显示牌堆数量 */}
+                            <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold rounded-full w-8 h-8 flex items-center justify-center ring-2 ring-white">
+                                {cards.length}
                             </div>
-                        )}
+                        </div>
 
                         {/* 发牌动画 */}
                         {dealingCard && (
                             <div
-                                className={`absolute transition-all duration-200 ${getPositionClass(dealingCard.position)}`}
+                                className={`absolute transition-all duration-300 transform ${getPositionClass(dealingCard.position)} animate-card-deal`}
                                 onAnimationEnd={() => setDealingCard(null)}
                             >
-                                <Card card={dealingCard.card} size="small" />
+                                <Card card={dealingCard.card} size="small"  />
                             </div>
                         )}
                     </div>
                 </div>
+
 
                 {/* 东方玩家出牌区域 */}
                 <div className="flex flex-col items-center ml-4">

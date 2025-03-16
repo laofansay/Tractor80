@@ -11,8 +11,8 @@ export type Player = {
     camp: Camp | null;
     isDdeclareTrump?: boolean;
     trumpSuit?: string;
-    currentRound?: Record<Position, string[]>;
-    lastRound?: Record<Position, string[]>;
+    currentRound: Record<Position, string[]>;
+    lastRound: Record<Position, string[]>;
     recCards?: string[];
     recRound?: string[];
 };

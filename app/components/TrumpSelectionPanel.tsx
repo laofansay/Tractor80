@@ -1,17 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 type TrumpSelectionPanelProps = {
   onSelectTrump: (trumpSuit: string | null) => void;
   gamePhase: string;
   availableSuits: string[];
-  trumpSuit: string;
+  trumpSuit: string | null;
+  playerCards: string[];
+  isSouthPlayer: boolean;
+  isTrumpDeclared: boolean;
 };
 
-export function TrumpSelectionPanel({ onSelectTrump, gamePhase, availableSuits, trumpSuit }: TrumpSelectionPanelProps) {
+export function TrumpSelectionPanel({ onSelectTrump, gamePhase, availableSuits, trumpSuit, playerCards, isSouthPlayer, isTrumpDeclared }: TrumpSelectionPanelProps) {
+  const [localAvailableSuits, setLocalAvailableSuits] = useState<string[]>([]);
+
+  // 检查手牌中是否有2或王
+  const checkAvailableSuits = () => {
+    const suits = new Set<string>();
+    playerCards.forEach(card => {
+      const value = card.slice(0, -1);
+      const suit = card.slice(-1);
+      if (value === '2' || value === 'J' || value === 'B') {
+        suits.add(suit);
+      }
+    });
+    return Array.from(suits);
+  };
+
+  // 自动亮主逻辑
+  useEffect(() => {
+    if (!isSouthPlayer && !isTrumpDeclared) {
+      const available = checkAvailableSuits();
+      if (available.length > 0) {
+        onSelectTrump(available[0]); // 自动选择第一个可用花色
+      }
+    }
+  }, [playerCards, isSouthPlayer, isTrumpDeclared]);
+
+  // 更新可用花色
+  useEffect(() => {
+    setLocalAvailableSuits(checkAvailableSuits());
+  }, [playerCards]);
+
   // 检查是否已经选择了主牌
-  const hasTrumpSelected = trumpSuit !== '';
+  const hasTrumpSelected = !!trumpSuit;
 
   // 只在亮主阶段显示面板
   if (gamePhase !== 'trumpSelection') {
@@ -20,7 +53,7 @@ export function TrumpSelectionPanel({ onSelectTrump, gamePhase, availableSuits, 
 
   // 获取当前选中花色的显示名称
   const getTrumpSuitDisplay = () => {
-    if (!trumpSuit) return '';
+    if (!trumpSuit || trumpSuit === '') return '';
 
     const suitMap: Record<string, string> = {
       'NT': '无主',

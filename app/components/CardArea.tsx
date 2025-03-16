@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Card } from './Card';
 import { sortCards } from '../utils/poker';
+import { Position, GamePhase } from './constant/Constant';
 
 
 type CardAreaProps = {
@@ -79,10 +80,15 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     };
 
     return (
-        <div className={`relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg ${position === 'east' || position === 'west' ? 'min-w-[100px] min-h-[400Px]' : ''
-            } `}>
-            <div className={`flex ${position === 'east' || position === 'west' ? 'flex-row items-center' : 'flex-col items-center'} `}>
-                <div className={`${position === 'east' || position === 'west' ? 'mr-3' : 'mb-2'} text - green - 100 font - medium flex items - center gap - 2`}>
+        <div className={`relative p-4 bg-green-700/30 rounded-xl backdrop-blur-sm border border-green-600/20 shadow-lg 
+            ${position === 'east' || position === 'west' ? 'min-w-[100px] min-h-[400Px]' : 'min-w-[100px] min-h-[200Px]'}
+            
+            `}>
+            <div className={`flex ${position === 'east' ? 'flex-row items-start' : 'flex-col items-center'}
+            
+                ${position === 'west' ? 'flex-row items-end' : 'flex-col items-center'}
+            `}>
+                <div className={`${position === 'east' ? 'ml-auto' : position === 'west' ? 'mr-auto' : 'mb-2'} text-green-100 font-medium flex items-center gap-2`}>
                     <span>
                         {position === 'north' && '北方玩家'}
                         {position === 'east' && '东方玩家'}
