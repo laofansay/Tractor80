@@ -2,8 +2,9 @@
 const suits = [
     { code: "S", symbol: "♠", order: 4 }, // 黑桃
     { code: "H", symbol: "♥", order: 3 }, // 红桃
-    { code: "D", symbol: "♦", order: 2 }, // 方块
-    { code: "C", symbol: "♣", order: 1 }, // 梅花
+    { code: "C", symbol: "♣", order: 2 }, // 梅花
+    { code: "D", symbol: "♦", order: 1 }, // 方块
+   
 ] as const;
 
 // 定义花色优先级
@@ -92,9 +93,8 @@ const getCardValue = (card: string, trumpSuit: string, trumpPoint: string): numb
 };
 
 // 获取第一次出牌的花色
-export const getCardSuit = (cards: string[], trumpSuit: string, trumpPoint: string): string | null => {
+export const getCardSuit = (cards: string[], trumpSuit: string, trumpPoint: string): string  => {
 
-    if (cards.length === 0) return null; // 没有牌时返回 null
     const firstCard = cards[0]; // 获取第一张牌（应该取第一张，而不是最后一张）
     const suit = firstCard.charAt(0); // 获取花色（首字符）
     const value = firstCard.slice(1); // 获取点数部分

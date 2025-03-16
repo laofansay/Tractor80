@@ -10,6 +10,7 @@ type DeckAreaProps = {
     gamePhase: string;
     onDealComplete?: () => void;
     onDealCard?: (card: string, position: Position) => void;
+    onDeclareTrump?: (card: string, position: Position) => void;
     northPlayedCards?: string[];
     eastPlayedCards?: string[];
     southPlayedCards?: string[];
@@ -21,6 +22,7 @@ export function DeckArea({
     gamePhase,
     onDealComplete,
     onDealCard,
+    onDeclareTrump,
     northPlayedCards = [],
     eastPlayedCards = [],
     southPlayedCards = [],
@@ -34,15 +36,12 @@ export function DeckArea({
     } | null>(null);
     const [positionIndex, setPositionIndex] = useState(0);
 
-    // 处理发牌动画
     useEffect(() => {
         if (gamePhase === 'dealing' && cards.length > 0) {
             const positions: Position[] = ['north', 'east', 'south', 'west'];
             let cardIndex = 0;
-
             // 预加载音效
             soundEffect.preloadSound('dealCard', '/sounds/deal-card.mp3');
-
             const dealInterval = setInterval(() => {
                 if (cardIndex >= 48) { // 发完48张牌
                     clearInterval(dealInterval);
@@ -52,48 +51,45 @@ export function DeckArea({
                     }
                     return;
                 }
-
+    
                 // 播放发牌音效
                 soundEffect.playSound('dealCard');
-
+    
                 // 设置当前发出的牌和目标位置
                 const currentCard = cards[cardIndex];
+                const targetPosition = positions[positionIndex];
+    
                 setDealingCard({
                     card: currentCard,
-                    position: positions[positionIndex],
+                    position: targetPosition,
                     isAnimating: true
                 });
-
-                console.log(currentCard,positions[positionIndex],positionIndex)
-                // 通知父组件发牌
+    
+                console.log(`发牌: ${currentCard} -> ${targetPosition}`);
+    
+                // 通知父组件，给当前玩家发一张牌
                 if (onDealCard) {
-                    onDealCard(currentCard, positions[positionIndex],);
+                    onDealCard(currentCard, targetPosition);
                 }
-
+    
+                // 通知父组件进行亮主（如果需要）
+                if (onDeclareTrump) {
+                    onDeclareTrump(currentCard, targetPosition);
+                }
+    
                 // 从可见牌堆中移除已发出的牌
                 setVisibleCards(prev => prev.filter(card => card !== currentCard));
-                
-                // 更新索引
+    
+                // 轮流给下一个玩家发牌
                 cardIndex++;
                 setPositionIndex(prev => (prev + 1) % 4);
-            }, 100); // 每80毫秒发一张牌
-
-            // 确保每人12张牌
-            if (cardIndex === 48) {
-                const playerCards = {
-                    north: cards.slice(0, 12),
-                    east: cards.slice(12, 24),
-                    south: cards.slice(24, 36),
-                    west: cards.slice(36, 48)
-                };
-                if (onDealComplete) {
-                    onDealComplete();
-                }
-            }
-
+            }, 100); // 每200毫秒发一张牌
+    
             return () => clearInterval(dealInterval);
         }
-    }, [gamePhase, cards, onDealComplete, onDealCard]);
+    }, [gamePhase, cards, onDealComplete, onDealCard, onDeclareTrump]);
+    
+   
 
     // 渲染玩家出的牌
     const renderPlayedCards = (cards: string[], position: string) => {

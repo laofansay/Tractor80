@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { calculateScorPoint } from "../utils/poker";
+import { Position } from "../components/constant/Constant";
 
 // 出牌类型（支持多种组合）
 export enum CardType {
@@ -18,7 +19,7 @@ export interface CardTypeGroup {
 export interface RoundState {
     leadingSuit: string; // 出牌花色
     cardTypeGroup: CardTypeGroup[]; // 出牌类型及其数量的数组
-    leadingPlayer: string; // 最大玩家
+    leadingPlayer: Position; // 最大玩家
     roundNumber: number; // 回合数
 }
 
@@ -27,7 +28,7 @@ export function useGameRoundTracker() {
     // 使用 useState 管理 roundState
     const [roundState, setRoundState] = useState<RoundState>({
         leadingSuit: "",
-        leadingPlayer: "",
+        leadingPlayer: 'obs',
         cardTypeGroup: [],
         roundNumber: 1
     });
@@ -38,7 +39,7 @@ export function useGameRoundTracker() {
     };
 
     // 设置当前最大玩家
-    const setLeadingPlayer = (player: string) => {
+    const setLeadingPlayer = (player: Position) => {
         setRoundState(prev => ({ ...prev, leadingPlayer: player }));
     };
 

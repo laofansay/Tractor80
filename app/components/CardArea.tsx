@@ -17,11 +17,10 @@ type CardAreaProps = {
     isTrumpSuit?: boolean;
     isFirstPlayer?: boolean;
     isLeadingPlayer?: boolean;
-    onDeclare: () => void;
-    onPlayCard: (cards: string[]) => void;
     onSelectBottomCards?: (selectedCards: string[]) => void;
+    onPlayCard: (cards: string[]) => void;
+   
 };
-
 
 
 export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer = false,
@@ -30,7 +29,7 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
     isTrumpSuit = false,
     isFirstPlayer = false,
     isLeadingPlayer = false,
-    onPlayCard, onSelectBottomCards }: CardAreaProps) {
+    onSelectBottomCards ,onPlayCard}: CardAreaProps) {
     // 用于跟踪扣底阶段选中的卡牌
     const [selectedCards, setSelectedCards] = useState < string[] > ([]);
 
@@ -95,6 +94,7 @@ export function CardArea({ position, cards, isDealer, gamePhase, isCurrentPlayer
                         {position === 'south' && '南方玩家'}
                         {position === 'west' && '西方玩家'}
                         {isDealer && ' (庄家)'}
+                        {position}
                     </span>
                     {isTrumpSuit && (
                         <div className='px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900'>

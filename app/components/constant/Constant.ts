@@ -8,9 +8,9 @@ export type Player = {
     selectedCards?: string[];
     isBot?: boolean;
     isObs?: boolean;
-    camp: Camp | null;
+    camp: Camp ;
     isDdeclareTrump?: boolean;
-    trumpSuit?: string;
+    trumpSuit: string;
     currentRound: Record<Position, string[]>;
     lastRound: Record<Position, string[]>;
     recCards?: string[];
@@ -38,6 +38,6 @@ export interface ScorePanelProps {
       };
     };
     rulingParty: "red" | "blue" | string;
-    redUpLevel: number;
-    blueUpLevel: number;
+    redUpLevel: string;
+    blueUpLevel: string;
   }
