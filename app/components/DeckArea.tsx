@@ -42,7 +42,7 @@ export function DeckArea({
             soundEffect.preloadSound('dealCard', '/sounds/deal-card.mp3');
 
             const dealInterval = setInterval(() => {
-                if (cardIndex >= 52) { // 52张牌发完
+                if (cardIndex >= 48) { // 54张牌发完
                     clearInterval(dealInterval);
                     setDealingCard(null);
                     if (onDealComplete) {
@@ -61,14 +61,12 @@ export function DeckArea({
                     position: positions[positionIndex],
                     isAnimating: true
                 });
-
                 // 从可见牌堆中移除已发出的牌
                 setVisibleCards(prev => prev.filter(card => card !== currentCard));
-
                 // 更新索引
                 positionIndex = (positionIndex + 1) % 4;
                 cardIndex++;
-            }, 200); // 每200毫秒发一张牌
+            }, 80); // 每200毫秒发一张牌
 
             return () => clearInterval(dealInterval);
         }

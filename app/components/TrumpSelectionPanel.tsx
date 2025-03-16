@@ -15,7 +15,7 @@ export function TrumpSelectionPanel({ onSelectTrump, gamePhase, availableSuits, 
 
   // 只在亮主阶段显示面板
   if (gamePhase !== 'trumpSelection') {
-    return null;
+    //return null;
   }
 
   // 获取当前选中花色的显示名称

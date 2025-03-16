@@ -42,6 +42,43 @@ export default function Page() {
     setPlayers
   } = useGameState();
 
+  // 监控玩家手牌变化，处理亮主逻辑
+  useEffect(() => {
+    // 只在发牌阶段处理亮主逻辑
+    if (gamePhase === 'dealing') {
+      // 检查每个玩家的手牌
+      const positions: Position[] = ['north', 'east', 'south', 'west'];
+
+      for (const position of positions) {
+        const playerCards = players[position].cards;
+
+        // 检查是否有特殊牌（如2或大小王）
+        const hasTrumpCard = playerCards.some(card => {
+          const value = card.substring(1);
+          const suit = card.substring(0, 1);
+          return value === '2' || suit === 'J'; // 2或大小王
+        });
+
+        if (hasTrumpCard && playerCards.length >= 1) {
+          // 如果有特殊牌且手牌数量足够，标记该玩家可以亮主
+          setPlayers(prev => ({
+            ...prev,
+            [position]: {
+              ...prev[position],
+              isDdeclareTrump: true
+            }
+          }));
+        }
+      }
+    }
+  }, [
+    gamePhase,
+    players.north.cards,
+    players.east.cards,
+    players.south.cards,
+    players.west.cards
+  ]);
+
   // 处理发牌完成事件
   const handleDealComplete = () => {
     setGamePhase('trumpSelection');
@@ -117,23 +154,23 @@ export default function Page() {
     }
 
     // 检查是否所有玩家都已出牌
-    const nextPlayers = getNextPlayer(position);
-    const allPlayed = nextPlayers === 'north';
+    const nextPlayer = getNextPlayer(position);
+    const allPlayed = nextPlayer === 'north';
 
     if (allPlayed) {
       // 回合结束，计算得分并开始新回合
       handleRoundEnd();
     } else {
       // 轮到下一个玩家出牌
-      if (players[nextPlayers].isBot) {
+      if (players[nextPlayer].isBot) {
         // AI玩家自动出牌
         setTimeout(() => {
           const aiCards = selectCardsToPlay(
-            players[nextPlayers].cards,
+            players[nextPlayer].cards,
             players.obs.currentRound,
             players.obs.trumpSuit || null
           );
-          handlePlayCard(nextPlayers, aiCards);
+          handlePlayCard(nextPlayer, aiCards);
         }, 1000);
       }
     }
@@ -328,10 +365,10 @@ export default function Page() {
             // 分发卡牌给玩家
             setPlayers(prev => ({
               ...prev,
-              north: { ...prev.north, cards: shuffledDeck.slice(0, 13) },
-              east: { ...prev.east, cards: shuffledDeck.slice(13, 26) },
-              south: { ...prev.south, cards: shuffledDeck.slice(26, 39) },
-              west: { ...prev.west, cards: shuffledDeck.slice(39, 52) }
+              north: { ...prev.north, cards: shuffledDeck.slice(0, 11) },
+              east: { ...prev.east, cards: shuffledDeck.slice(12, 23) },
+              south: { ...prev.south, cards: shuffledDeck.slice(24, 36) },
+              west: { ...prev.west, cards: shuffledDeck.slice(37, 48) }
             }));
             setGamePhase('dealing');
             // 预加载发牌音效
