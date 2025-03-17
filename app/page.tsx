@@ -81,7 +81,7 @@ export default function Page() {
               ...prev,
               obs: {
                 ...prev.obs,
-                isDdeclareTrump: true,  // ✅ 通过 `setState` 更新
+                isDdeclareTrump: true,  
                 isDealer:true,
                 trumpSuit: suit
               },
@@ -90,7 +90,7 @@ export default function Page() {
                 isDdeclareTrump: true
               }
             }));
-              if( dealerPosition==null){
+              if( dealerPosition!="obs"){
                 setDealerPosition(position)
               }
 
@@ -104,19 +104,20 @@ export default function Page() {
       if(card.charAt(1)==='2' || card.charAt(0)=='B' || card.charAt(0)=='R'   ){
         setAvailableSuits(pre=> [...pre,card.charAt(0)]);
       } 
+      if (dealerPosition=="obs") setCurrentPlayer("south")
     }
   }
 };
 //面板亮主
 const swearTrump = (suit:string ,position:Position) => {
     if (players.obs.isDdeclareTrump) return 
-    if ((gamePhase === 'dealing'  ||gamePhase === 'trumpSelection') && ["NT", suit].some(s => availableSuits.includes(s)) &&  !players.obs.isDdeclareTrump) {
+    if ((gamePhase === 'dealing'  ||gamePhase === 'trumpSelection') && ["B","R", suit].some(s => availableSuits.includes(s)) &&  !players.obs.isDdeclareTrump) {
       setDealerPosition (position);
       setPlayers(prev => ({
         ...prev,
         obs: {
           ...prev.obs,
-          isDdeclareTrump: true,  // ✅ 通过 `setState` 更新
+          isDdeclareTrump: true,  
           trumpSuit: suit
         },
         [position]: {
@@ -203,8 +204,209 @@ const swearTrump = (suit:string ,position:Position) => {
 
   
 
-  // 处理出牌逻辑
+  // 处理玩家出牌
   const handlePlayCard = (cards: string[], position: Position) => {
+    // 验证出牌是否符合规则
+    const validationResult = validateCardPlay(position, cards, players.obs.currentRound);
+
+    if (!validationResult.valid) {
+      // 如果出牌不符合规则，可以显示错误信息
+      alert(validationResult.message);
+      return;
+    }
+
+    // 更新玩家手牌
+    setPlayers(prev => ({
+      ...prev,
+      [position]: {
+        ...prev[position],
+        cards: prev[position].cards.filter(card => !cards.includes(card))
+      },
+      obs: {
+        ...prev.obs,
+        currentRound: {
+          ...prev.obs.currentRound,
+          [position]: cards
+        }
+      }
+    }));
+
+    // 如果是首次出牌，设置首出花色
+    const isFirstPlay = Object.values(players.obs.currentRound).every(cards => cards.length === 0);
+    if (isFirstPlay) {
+      const leadingSuit = getCardSuit(cards, players.obs.trumpSuit , '2');
+      setLeadingSuit(leadingSuit);
+      setLeadingPlayer(position);
+    } else {
+      // 比较当前出牌与当前最大牌
+      const leadingPosition = roundState.leadingPlayer as Position;
+      const leadingCards = players.obs.currentRound[leadingPosition] || [];
+
+      if (leadingCards.length > 0) {
+        const compareResult = compareCards(
+          leadingCards,
+          cards,
+          players.obs.trumpSuit || '',
+          '2'
+        );
+
+        if (compareResult === 0) {
+          // 如果当前出牌更大，更新最大玩家
+          setLeadingPlayer(position);
+        }
+      }
+    }
+
+    // 检查是否所有玩家都已出牌
+    // 检查当前回合是否所有玩家都已出牌
+    const allPositions: Exclude<Position, "obs">[] = ['north', 'east', 'south', 'west'];
+    const allPlayersPlayed = allPositions.every(e =>
+      players.obs.currentRound[e]?.length > 0
+    );
+
+    if (allPlayersPlayed) {
+      // 回合结束，计算得分并开始新回合
+      handleRoundEnd();
+    } else {
+       // 设置下一个出牌玩家
+       const nextPlayer = getNextPlayer(position);
+       setCurrentPlayer(nextPlayer)
+    }
+  };
+
+
+  // 处理回合结束
+  const handleRoundEnd = () => {
+    // 获取当前回合的获胜玩家
+    const winnerPosition = roundState.leadingPlayer as Position;
+    const winnerCamp = players[winnerPosition].camp as Camp;
+
+    // 计算本回合的得分
+    let roundScore = 0;
+    Object.values(players.obs.currentRound).forEach(cards => {
+      cards.forEach(card => {
+        const value = card.substring(1);
+        if (value === '5') roundScore += 5;
+        else if (value === '10' || value === 'K') roundScore += 10;
+      });
+    });
+
+    // 添加得分到对应阵营
+    if (roundScore > 0) {
+      addCardToCamp(winnerCamp, '', roundScore);
+    }
+
+    // 保存当前回合到上一回合
+    setPlayers(prev => ({
+      ...prev,
+      obs: {
+        ...prev.obs,
+        lastRound: { ...prev.obs.currentRound },
+        currentRound: {
+          north: [],
+          east: [],
+          south: [],
+          west: [],
+          obs: []
+        }
+      }
+    }));
+
+    // 进入下一回合
+    nextRound();
+
+    // 检查是否所有玩家手牌都已出完
+    const allCardsPlayed = Object.values(players).every(player =>
+      player.isObs || player.cards.length === 0
+    );
+    // 重置庄家。根据得分判断庄家
+    let position="south"
+
+    if (allCardsPlayed) {
+      // 游戏结束，可以显示结算界面或重新开始
+      alert('游戏结束！');
+      // 这里可以添加游戏结束的逻辑
+       // 设置下一回合的首出玩家
+      //设置下一局的庄家
+      setPlayers(prev => ({
+        ...prev,
+       
+        north: { 
+          cards: [], 
+          isDealer: position === 'north', 
+          isBot: true, 
+          camp: 'red', 
+          isDdeclareTrump: false,
+          currentRound: { north: [], east: [], south: [], west: [], obs: [] },
+          lastRound: { north: [], east: [], south: [], west: [], obs: [] },
+          trumpSuit: 'H'
+        },
+        east: { 
+          cards: [], 
+          isDealer: position === 'east', 
+          isBot: true, 
+          camp: 'blue', 
+          isDdeclareTrump: false,
+          currentRound: { north: [], east: [], south: [], west: [], obs: [] },
+          lastRound: { north: [], east: [], south: [], west: [], obs: [] },  
+          trumpSuit: 'H'
+        },
+        south: { 
+          cards: [], 
+          isDealer: position === 'south', 
+          isBot: false, 
+          camp: 'red', 
+          isDdeclareTrump: false,
+          currentRound: { north: [], east: [], south: [], west: [], obs: [] },
+          lastRound: { north: [], east: [], south: [], west: [], obs: [] },
+            trumpSuit: 'H'
+        },
+        west: { 
+          cards: [], 
+          isDealer: position === 'west', 
+          isBot: true, 
+          camp: 'blue', 
+          isDdeclareTrump: false,
+          currentRound: { north: [], east: [], south: [], west: [], obs: [] },
+          lastRound: { north: [], east: [], south: [], west: [], obs: [] },
+            trumpSuit: 'H'
+          
+        },
+        obs: {
+          cards: [], 
+          isDealer: false, 
+          isObs: true, 
+          camp: 'red', 
+          recCards: [], 
+          currentRound: {
+            north: [],
+            east: [],
+            south: [],
+            west: [],
+            obs: []
+          },
+          lastRound: {
+            north: [],
+            east: [],
+            south: [],
+            west: [],
+            obs: []
+          },
+          trumpSuit: 'H'}
+
+
+        
+      }));
+
+    } else {
+      setCurrentPlayer(winnerPosition);
+      setDealerPosition("obs");
+    }
+  };
+
+
+  // 处理出牌逻辑
+  const handlePlayCard1 = (cards: string[], position: Position) => {
     if (gamePhase !== 'playing' || position !== currentPlayer || cards.length === 0) return;
     soundEffect.preloadSound('dealCard', '/sounds/deal-card.mp3');
     // 验证出牌是否符合规则
@@ -333,7 +535,7 @@ const swearTrump = (suit:string ,position:Position) => {
       <div className="container mx-auto">
         <div className="grid grid-cols-3 gap-4">
           <div className="col-start-2 row-start-2">
-            {availableSuits}
+            {availableSuits}{currentPlayer}
             <DeckArea 
               cards={players.obs.cards}
               gamePhase={gamePhase}
@@ -387,7 +589,7 @@ const swearTrump = (suit:string ,position:Position) => {
               cards={players.north.cards}
               isDealer={players.north.isDealer}
               gamePhase={gamePhase}
-              isCurrentPlayer={currentPlayer === 'north' || Object.values(players.obs.currentRound.north).every(cards => cards.length === 0)}
+              isCurrentPlayer={currentPlayer === 'north' }
               isTrumpSuit={players.north.isDdeclareTrump}
               trumpSuit={players.obs.trumpSuit}
               trumpPoint={null}
@@ -402,7 +604,7 @@ const swearTrump = (suit:string ,position:Position) => {
               cards={players.west.cards}
               isDealer={players.west.isDealer}
               gamePhase={gamePhase}
-              isCurrentPlayer={currentPlayer=== 'west' || Object.values(players.obs.currentRound.west).every(cards => cards.length === 0)}
+              isCurrentPlayer={currentPlayer=== 'west' }
               trumpSuit={players.obs.trumpSuit}
               trumpPoint={null}
               onSelectBottomCards={handleBottomCards}
@@ -416,7 +618,7 @@ const swearTrump = (suit:string ,position:Position) => {
               cards={players.east.cards}
               isDealer={players.east.isDealer}
               gamePhase={gamePhase}
-              isCurrentPlayer={currentPlayer === 'east' || Object.values(players.obs.currentRound.east).every(cards => cards.length === 0)}
+              isCurrentPlayer={currentPlayer === 'east'}
               isTrumpSuit={players.east.isDdeclareTrump}
               trumpSuit={players.obs.trumpSuit}
               trumpPoint={null}
@@ -431,7 +633,7 @@ const swearTrump = (suit:string ,position:Position) => {
               cards={players.south.cards}
               isDealer={players.south.isDealer}
               gamePhase={gamePhase}
-              isCurrentPlayer={currentPlayer=== 'east' || Object.values(players.obs.currentRound.south).every(cards => cards.length === 0)}
+              isCurrentPlayer={currentPlayer=== 'south' }
               isTrumpSuit={players.south.isDdeclareTrump}
               trumpSuit={players.obs.trumpSuit}
               trumpPoint={null}
