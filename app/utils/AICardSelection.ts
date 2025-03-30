@@ -99,6 +99,13 @@ export const selectCardsToPlay = (cards: string[], currentRoundData: Record<Posi
     // 如果是该回合第一个出牌的玩家，智能选择牌出
     const isFirstPlayer = Object.values(currentRoundData).every(cards => !cards || cards.length === 0);
 
+    // 获取需要出牌的数量
+    let requiredCount = 1;
+    if (!isFirstPlayer) {
+        const firstPlayerCards = Object.values(currentRoundData).find(cards => cards && cards.length > 0);
+        requiredCount = firstPlayerCards?.length || 1;
+    }
+
     if (isFirstPlayer) {
         // 第一个出牌，优先选择非主牌的中小牌
         const sortedCards = sortCardsByValue(cards, trumpSuit);
@@ -177,11 +184,11 @@ export const selectCardsToPlay = (cards: string[], currentRoundData: Record<Posi
             }
 
             // 如果没有能赢的牌或不是最后一个出牌的玩家，出最小的牌
-            return [sortedSameSuitCards[sortedSameSuitCards.length - 1]];
+            return sortedSameSuitCards.slice(-requiredCount);
         } else if (trumpCards.length > 0 && (isJoker || leadingSuit !== trumpSuit)) {
             // 没有相同花色但有主牌，且首出的不是主牌或是大小王
             const sortedTrumpCards = sortCardsByValue(trumpCards, trumpSuit);
-            return [sortedTrumpCards[sortedTrumpCards.length - 1]]; // 出最小的主牌
+            return sortedTrumpCards.slice(-requiredCount); // 出最小的主牌
         } else if (jokers.length > 0 && cards.length > 1) {
             // 没有相同花色和主牌但有大小王，且不是最后一张牌
             const nonJokers = cards.filter(card => card.charAt(0) !== 'B' && card.charAt(0) !== 'J');
@@ -193,6 +200,6 @@ export const selectCardsToPlay = (cards: string[], currentRoundData: Record<Posi
 
         // 没有相同花色的牌或只剩王牌，出最小的一张
         const sortedCards = sortCardsByValue(cards, trumpSuit);
-        return [sortedCards[sortedCards.length - 1]];
+        return sortedCards.slice(-requiredCount);
     }
 };

@@ -30,7 +30,7 @@ export function useGameRoundTracker() {
         leadingSuit: "",
         leadingPlayer: 'obs',
         cardTypeGroup: [],
-        roundNumber: 1
+        roundNumber: 0,
     });
 
     // 设置出牌花色
@@ -50,9 +50,18 @@ export function useGameRoundTracker() {
 
     // 进入下一回合
     const nextRound = () => {
-        setRoundState(prev => ({ ...prev, roundNumber: prev.roundNumber + 1 }));
+        setRoundState(prev => ({
+            ...prev,
+            roundNumber: prev.roundNumber + 1
+        }));
     };
-
+  // 进入下一回合
+  const initRound = () => {
+    setRoundState(prev => ({
+        ...prev,
+        roundNumber:0
+    }));
+};
 
     // 计算每种出牌的组合
     const checkCardGroup = (cards: string[], trumpSuit: string, trumpPoint: string): CardTypeGroup[] => {
@@ -159,7 +168,8 @@ export function useGameRoundTracker() {
         setCardGroup,
         setLeadingPlayer,
         nextRound,
+        initRound,
         initializeCards,
-        dealCards
+        dealCards,
     };
 }

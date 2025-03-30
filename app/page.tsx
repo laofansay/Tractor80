@@ -15,6 +15,7 @@ import { usePoints, PointsState } from "./hooks/usePoints";
 import { GamePhase, Position, Player, Camp } from './components/constant/Constant';
 import { compareCards, shuffleDeck, getCardSuit, isValidPlay, deck, getCardType, calculateScore, sortCards, getCardOrderValue } from "./utils/poker";
 import { useGameRoundTracker } from './hooks/useRoundTracker';
+import { init } from 'next/dist/compiled/webpack/webpack';
 
 export default function Page() {
   const {
@@ -28,6 +29,7 @@ export default function Page() {
     setLeadingPlayer,
     setCardGroup,
     nextRound,
+    initRound,
     gamePhase,
     setGamePhase,
     redUpLevel,
@@ -45,6 +47,34 @@ export default function Page() {
    } = useGameState();
 
   const [deckCards, setDeckCards] = useState<string[]>([]);
+
+
+
+// 添加 useEffect 处理 bot 自动出牌
+useEffect(() => {
+  if (!currentPlayer || gamePhase !== 'playing') return;
+  
+  if (players[currentPlayer].isBot) {
+    const timer = setTimeout(() => {
+      handleAIPlay(currentPlayer);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }
+  if (players[dealerPosition].isBot) {
+    const timer = setTimeout(() => {
+      // 选择最小的6张牌扣底
+      // const sortedCards = [...players[dealerPosition].cards].sort((a, b) => 
+      //   getCardOrderValue(a, players.obs.trumpSuit) - getCardOrderValue(b, players.obs.trumpSuit)
+      // );
+      //const cardsToDiscard = sortedCards.slice(0, 6);
+      //handleBottomCards(cardsToDiscard);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }
+}, [currentPlayer, gamePhase]);
+
 
   const handleInitialize = () => {
     const shuffledDeck = shuffleDeck(deck);
@@ -104,7 +134,6 @@ export default function Page() {
       if(card.charAt(1)==='2' || card.charAt(0)=='B' || card.charAt(0)=='R'   ){
         setAvailableSuits(pre=> [...pre,card.charAt(0)]);
       } 
-      if (dealerPosition=="obs") setCurrentPlayer("south")
     }
   }
 };
@@ -175,7 +204,6 @@ const swearTrump = (suit:string ,position:Position) => {
   // 处理庄家扣底
   const handleBottomCards = (selectedCards: string[]) => {
     if (gamePhase !== 'bottomCards' || !dealerPosition || selectedCards.length !== 6) return;
-
     // 从庄家手牌中移除选中的牌
     const newPlayers = { ...players };
     const dealerCards = [...newPlayers[dealerPosition].cards];
@@ -200,19 +228,24 @@ const swearTrump = (suit:string ,position:Position) => {
 
     // 设置庄家为第一个出牌的玩家
     setCurrentPlayer(dealerPosition);
+    initRound;
+
   };
 
   
 
   // 处理玩家出牌
   const handlePlayCard = (cards: string[], position: Position) => {
+    // 播放出牌音效
+    soundEffect.preloadSound('playCard', '/sounds/send-card.mp3');
+    soundEffect.playSound('playCard');
     // 验证出牌是否符合规则
     const validationResult = validateCardPlay(position, cards, players.obs.currentRound);
 
     if (!validationResult.valid) {
       // 如果出牌不符合规则，可以显示错误信息
       alert(validationResult.message);
-      return;
+     // return;
     }
 
     // 更新玩家手牌
@@ -232,7 +265,7 @@ const swearTrump = (suit:string ,position:Position) => {
     }));
 
     // 如果是首次出牌，设置首出花色
-    const isFirstPlay = Object.values(players.obs.currentRound).every(cards => cards.length === 0);
+    const isFirstPlay =roundState.roundNumber==0
     if (isFirstPlay) {
       const leadingSuit = getCardSuit(cards, players.obs.trumpSuit , '2');
       setLeadingSuit(leadingSuit);
@@ -256,23 +289,26 @@ const swearTrump = (suit:string ,position:Position) => {
         }
       }
     }
+    // 进入下一回合
+    nextRound();
+      // 设置下一个出牌玩家
+      const nextPlayer = getNextPlayer(position);
+      setCurrentPlayer(nextPlayer)
 
+  };
+
+
+// 出牌回合监听
+useEffect(() => {
+  if (gamePhase !== 'playing' || !dealerPosition) return;
     // 检查是否所有玩家都已出牌
-    // 检查当前回合是否所有玩家都已出牌
-    const allPositions: Exclude<Position, "obs">[] = ['north', 'east', 'south', 'west'];
-    const allPlayersPlayed = allPositions.every(e =>
-      players.obs.currentRound[e]?.length > 0
-    );
-
-    if (allPlayersPlayed) {
+    if (roundState.roundNumber===4) {
       // 回合结束，计算得分并开始新回合
       handleRoundEnd();
-    } else {
-       // 设置下一个出牌玩家
-       const nextPlayer = getNextPlayer(position);
-       setCurrentPlayer(nextPlayer)
     }
-  };
+}, [roundState.roundNumber, gamePhase]);
+
+
 
 
   // 处理回合结束
@@ -281,21 +317,27 @@ const swearTrump = (suit:string ,position:Position) => {
     const winnerPosition = roundState.leadingPlayer as Position;
     const winnerCamp = players[winnerPosition].camp as Camp;
 
+
     // 计算本回合的得分
     let roundScore = 0;
     Object.values(players.obs.currentRound).forEach(cards => {
       cards.forEach(card => {
         const value = card.substring(1);
-        if (value === '5') roundScore += 5;
-        else if (value === '10' || value === 'K') roundScore += 10;
+        if (value === '5') {
+          roundScore += 5;
+          addCardToCamp(winnerCamp, card, roundScore);
+        }
+        else if (value === '10' || value === 'K') {
+          roundScore += 10;
+          addCardToCamp(winnerCamp, card, roundScore);
+        }
+
+         
       });
     });
 
-    // 添加得分到对应阵营
-    if (roundScore > 0) {
-      addCardToCamp(winnerCamp, '', roundScore);
-    }
-
+   
+    initRound();
     // 保存当前回合到上一回合
     setPlayers(prev => ({
       ...prev,
@@ -312,10 +354,7 @@ const swearTrump = (suit:string ,position:Position) => {
       }
     }));
 
-    // 进入下一回合
-    nextRound();
-
-    // 检查是否所有玩家手牌都已出完
+    // 检查是否最后一回合，一局结束
     const allCardsPlayed = Object.values(players).every(player =>
       player.isObs || player.cards.length === 0
     );
@@ -393,134 +432,29 @@ const swearTrump = (suit:string ,position:Position) => {
             obs: []
           },
           trumpSuit: 'H'}
-
-
-        
       }));
 
-    } else {
+    } 
       setCurrentPlayer(winnerPosition);
       setDealerPosition("obs");
-    }
   };
 
 
   // 处理出牌逻辑
-  const handlePlayCard1 = (cards: string[], position: Position) => {
-    if (gamePhase !== 'playing' || position !== currentPlayer || cards.length === 0) return;
-    soundEffect.preloadSound('dealCard', '/sounds/deal-card.mp3');
-    // 验证出牌是否符合规则
-    const currentRound = players.obs.currentRound || {};
-    const validationResult = validateCardPlay(position, cards, currentRound);
-    if (!validationResult.valid) {
-      alert(validationResult.message);
-      return;
-    }
-    const newPlayers = { ...players };
-    const playerCards = [...newPlayers[position].cards];
-
-    // 移除所有选中的牌
-    cards.forEach(card => {
-      const cardIndex = playerCards.indexOf(card);
-      if (cardIndex !== -1) {
-        playerCards.splice(cardIndex, 1);
-      }
-    });
-    newPlayers[position].cards = playerCards;
-    setPlayers(newPlayers);
-
-    // 更新当前回合的出牌记录（存储在obs中）
-    newPlayers.obs = {
-      ...newPlayers.obs,
-      currentRound: {
-        ...newPlayers.obs.currentRound, // 先复制原有的 currentRound
-        [position]: cards // 更新当前 position 的出牌记录
-      }
-    };
-    setPlayers(newPlayers);
-
-    // 为每张牌播放一次出牌音效
-    cards.forEach((_, index) => {
-      setTimeout(() => {
-        soundEffect.playSound('playCard');
-      }, index * 100); // 每张牌之间间隔100毫秒
-    });
-
-    //与之前出牌玩量最大的牌比大于
-    if (roundState.leadingPlayer == "obs") {
-      //他是第一个出牌的
-      setLeadingSuit(getCardSuit(cards, players.obs.trumpSuit, redUpLevel) ?? "NT");
-      setLeadingPlayer(position);
-      setCardGroup(cards,players.obs.trumpSuit,redUpLevel);
-    } else {
-      const result = compareCards(newPlayers.obs.currentRound[roundState.leadingPlayer], cards, players.obs.trumpSuit, redUpLevel);
-      // 如果当前玩家出的牌比最大的牌大，则更新最大牌的玩家      
-      if (result >= 1) {
-        setMasterPlayerRound(position)
-      }
-    }
-    // 检查当前回合是否所有玩家都已出牌
-    const allPositions: Exclude<Position, "obs">[] = ['north', 'east', 'south', 'west'];
-    const allPlayersPlayed = allPositions.every(e =>
-      players.obs.currentRound[e]?.length > 0
+  // 处理AI玩家自动出牌
+  const handleAIPlay = (position: Position) => {
+    if (!players[position].isBot) return;
+    // 使用AI策略选择要出的牌
+    const selectedCards = selectCardsToPlay(
+      players[position].cards,
+      players.obs.currentRound,
+      players.obs.trumpSuit
     );
-
-    //当前回合结束
-    if (allPlayersPlayed) {
-      //本轮牌最大的完成
-      //闲家得分 和庄家是不是一个阵营的，不是则抓分
-      if (newPlayers[masterPlayerRound].camp !== newPlayers[dealerPosition].camp) {
-        Object.values(newPlayers.obs.currentRound).flat().forEach(e => {
-          if (typeof e === "string") {
-            let cardValue = e.slice(1); // 去掉花色
-            if (cardValue === '5' || cardValue === '10' || cardValue === 'K') {
-              addCardToCamp(newPlayers[masterPlayerRound].camp, e, cardValue === '5' ? 5 : 10);
-            }
-          }
-        });
-      }
-
-      newPlayers.obs = {
-        ...newPlayers.obs,
-        recRound: [
-          ...(newPlayers.obs.recRound || []), // 追加到 recRound
-          ...Object.values(newPlayers.obs.lastRound).flat() // lastRound 的所有牌合并
-        ],
-        lastRound: { ...newPlayers.obs.currentRound },
-        currentRound: { north: [], east: [], south: [], west: [], obs: [] }
-      };
-      setPlayers(newPlayers);
-
-      // 增加回合计数
-      nextRound
-      //本回合出牌最在的玩家为当前玩家
-      setCurrentPlayer(masterPlayerRound);
-      setMasterPlayerRound("obs");
-    } else {
-      // 设置下一个出牌玩家
-      const nextPlayer = getNextPlayer(position);
-      setCurrentPlayer(nextPlayer);
-    }
-
-
-
-    // 检查游戏是否结束（所有玩家手牌都出完）
-    const isGameOver = Object.entries(newPlayers)
-      .filter(([key]) => key !== 'obs') // 排除OBS玩家
-      .every(([key, player]) => player.cards.length === 0); // 检查其他玩家的卡牌长度是否为0
-
-    if (isGameOver) {
-      // 游戏结束，显示结果
-      setTimeout(() => {
-        if (confirm(`游戏结束！共进行了${roundState.roundNumber }回合。\n\n是否要开始新的游戏？`)) {
-          // 重新开始游戏
-          handleInitialize();
-          cleanPoint('red');
-          cleanPoint('blue');
-        }
-      }, 500); // 稍微延迟，让最后一张牌的状态更新完成
-    }
+    // 调用出牌函数
+    handlePlayCard(selectedCards, position);
   };
+
+ 
 
   // 获取下一个玩家位置
   const getNextPlayer = (currentPos: Position): Position => {
@@ -535,7 +469,7 @@ const swearTrump = (suit:string ,position:Position) => {
       <div className="container mx-auto">
         <div className="grid grid-cols-3 gap-4">
           <div className="col-start-2 row-start-2">
-            {availableSuits}{currentPlayer}
+            {availableSuits}{currentPlayer} {players.obs.trumpSuit}
             <DeckArea 
               cards={players.obs.cards}
               gamePhase={gamePhase}
@@ -648,6 +582,7 @@ const swearTrump = (suit:string ,position:Position) => {
           rulingParty={players.south.camp}
           redUpLevel={redUpLevel}
           blueUpLevel={blueUpLevel}
+          lastRound={players.obs.lastRound}
         />
 
         <TrumpSelectionPanel
@@ -680,7 +615,7 @@ function useGameState() {
     addCardToCamp: (camp: Camp, card: string, points: number) => void;
     cleanPoint: (camp: Camp) => void;
   } = usePoints();
-  const { roundState, setLeadingSuit, setLeadingPlayer, setCardGroup, nextRound } = useGameRoundTracker();
+  const { roundState, setLeadingSuit, setLeadingPlayer, setCardGroup, nextRound,initRound } = useGameRoundTracker();
   const [gamePhase, setGamePhase] = useState<GamePhase>('initial');
   const [redUpLevel, setRedUpLevel] = useState<string>("2");
   const [blueUpLevel, setBlueUpLevel] = useState<string>("2");
@@ -769,6 +704,7 @@ function useGameState() {
     setLeadingPlayer,
     setCardGroup,
     nextRound,
+    initRound,
     gamePhase,
     setGamePhase,
     redUpLevel,
@@ -787,3 +723,4 @@ function useGameState() {
 
   };
 }
+
