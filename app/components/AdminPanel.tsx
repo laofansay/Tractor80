@@ -37,14 +37,14 @@ export function AdminPanel({
                         {gamePhase === 'playing' ? '重新开始' : '初始化牌堆'}
                     </button>
                 )}
-
+                {(gamePhase === 'initial' ) && (
                     <button
                         onClick={onDeal}
                         className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors text-sm"
                     >
                         开始发牌
                     </button>
-
+                )}
                 {gamePhase === 'pickBottomCards' && (
                     <button
                         onClick={onPickBottomCards}
@@ -60,15 +60,6 @@ export function AdminPanel({
                         className="px-3 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md transition-colors text-sm"
                     >
                         庄家扣底
-                    </button>
-                )}
-
-                {gamePhase === 'bottomCards' && (
-                    <button
-                        onClick={onStartPlaying}
-                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors text-sm"
-                    >
-                        开始出牌
                     </button>
                 )}
 

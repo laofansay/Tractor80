@@ -75,15 +75,16 @@ useEffect(() => {
   }
 }, [currentPlayer, gamePhase]);
 
-
+  //洗牌
   const handleInitialize = () => {
+    setGamePhase('initial')
     const shuffledDeck = shuffleDeck(deck);
     setPlayers(prev => ({
       ...prev,
       obs: {
         ...prev.obs,
         cards: shuffledDeck,
-        trumpSuit: 'H'
+        trumpSuit: ''
       },
       north: { ...prev.north, cards: [], isDdeclareTrump: false },
       east: { ...prev.east, cards: [], isDdeclareTrump: false },
@@ -91,13 +92,10 @@ useEffect(() => {
       west: { ...prev.west, cards: [], isDdeclareTrump: false }
     }));
   };
-
-
-
- // 公共方法：声明主权
+ // 亮主：声明主权
  const onDeclareTrump = (card:string, position:Position) => {
   if (players.obs.isDdeclareTrump) return 
-  if (gamePhase === 'dealing' && players[position].cards.length>1 &&  !players.obs.isDdeclareTrump) {
+  if (gamePhase === 'dealing' && players[position].cards.length>0 &&  !players.obs.isDdeclareTrump) {
     
     if (players[position].isBot){
       const suits=['S','H','C','D']  ;
@@ -137,6 +135,46 @@ useEffect(() => {
     }
   }
 };
+
+
+
+
+
+const onDealCard = (card:string, position:Position) => {
+    setPlayers(prev => {
+      const newPlayers = {
+        ...prev,
+        [position]: {
+          ...prev[position],
+          cards: [...prev[position].cards, card]
+        },
+        obs: {
+          ...prev.obs,
+          cards: prev.obs.cards.filter(c => c !== card)
+        }
+      };
+
+      // 检查是否已发完48张牌
+      if (newPlayers.obs.cards.length === 6) {
+        // 确保每人12张牌
+        const playerCards = {
+          north: newPlayers.north.cards,
+          east: newPlayers.east.cards,
+          south: newPlayers.south.cards,
+          west: newPlayers.west.cards
+        };
+        
+        if (playerCards.north.length === 12 &&
+            playerCards.east.length === 12 &&
+            playerCards.south.length === 12 &&
+            playerCards.west.length === 12) {
+          setGamePhase('trumpSelection');
+        }
+      }
+      return newPlayers;
+    });
+};
+
 //面板亮主
 const swearTrump = (suit:string ,position:Position) => {
     if (players.obs.isDdeclareTrump) return 
@@ -283,7 +321,7 @@ const swearTrump = (suit:string ,position:Position) => {
           '2'
         );
 
-        if (compareResult === 0) {
+        if (compareResult === 1) {
           // 如果当前出牌更大，更新最大玩家
           setLeadingPlayer(position);
         }
@@ -291,9 +329,9 @@ const swearTrump = (suit:string ,position:Position) => {
     }
     // 进入下一回合
     nextRound();
-      // 设置下一个出牌玩家
-      const nextPlayer = getNextPlayer(position);
-      setCurrentPlayer(nextPlayer)
+    // 设置下一个出牌玩家
+    const nextPlayer = getNextPlayer(position);
+    setCurrentPlayer(nextPlayer)
 
   };
 
@@ -338,6 +376,7 @@ useEffect(() => {
 
    
     initRound();
+
     // 保存当前回合到上一回合
     setPlayers(prev => ({
       ...prev,
@@ -360,10 +399,12 @@ useEffect(() => {
     );
     // 重置庄家。根据得分判断庄家
     let position="south"
-
+    setCurrentPlayer(winnerPosition);
+    setDealerPosition("obs");
     if (allCardsPlayed) {
       // 游戏结束，可以显示结算界面或重新开始
       alert('游戏结束！');
+
       // 这里可以添加游戏结束的逻辑
        // 设置下一回合的首出玩家
       //设置下一局的庄家
@@ -378,7 +419,7 @@ useEffect(() => {
           isDdeclareTrump: false,
           currentRound: { north: [], east: [], south: [], west: [], obs: [] },
           lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-          trumpSuit: 'H'
+          trumpSuit: ''
         },
         east: { 
           cards: [], 
@@ -388,7 +429,7 @@ useEffect(() => {
           isDdeclareTrump: false,
           currentRound: { north: [], east: [], south: [], west: [], obs: [] },
           lastRound: { north: [], east: [], south: [], west: [], obs: [] },  
-          trumpSuit: 'H'
+          trumpSuit: ''
         },
         south: { 
           cards: [], 
@@ -398,7 +439,7 @@ useEffect(() => {
           isDdeclareTrump: false,
           currentRound: { north: [], east: [], south: [], west: [], obs: [] },
           lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-            trumpSuit: 'H'
+            trumpSuit: ''
         },
         west: { 
           cards: [], 
@@ -408,7 +449,7 @@ useEffect(() => {
           isDdeclareTrump: false,
           currentRound: { north: [], east: [], south: [], west: [], obs: [] },
           lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-            trumpSuit: 'H'
+            trumpSuit: ''
           
         },
         obs: {
@@ -431,12 +472,11 @@ useEffect(() => {
             west: [],
             obs: []
           },
-          trumpSuit: 'H'}
+          trumpSuit: ''}
       }));
-
+      handleInitialize();
     } 
-      setCurrentPlayer(winnerPosition);
-      setDealerPosition("obs");
+     
   };
 
 
@@ -469,51 +509,16 @@ useEffect(() => {
       <div className="container mx-auto">
         <div className="grid grid-cols-3 gap-4">
           <div className="col-start-2 row-start-2">
-            {availableSuits}{currentPlayer} {players.obs.trumpSuit}
             <DeckArea 
               cards={players.obs.cards}
               gamePhase={gamePhase}
               onDealComplete={onDealComplete }
               onDeclareTrump={onDeclareTrump }
-              onDealCard={(card, position) => {
-                setPlayers(prev => {
-                  const newPlayers = {
-                    ...prev,
-                    [position]: {
-                      ...prev[position],
-                      cards: [...prev[position].cards, card]
-                    },
-                    obs: {
-                      ...prev.obs,
-                      cards: prev.obs.cards.filter(c => c !== card)
-                    }
-                  };
-
-                  // 检查是否已发完48张牌
-                  if (newPlayers.obs.cards.length === 6) {
-                    // 确保每人12张牌
-                    const playerCards = {
-                      north: newPlayers.north.cards,
-                      east: newPlayers.east.cards,
-                      south: newPlayers.south.cards,
-                      west: newPlayers.west.cards
-                    };
-                    
-                    if (playerCards.north.length === 12 &&
-                        playerCards.east.length === 12 &&
-                        playerCards.south.length === 12 &&
-                        playerCards.west.length === 12) {
-                      setGamePhase('trumpSelection');
-                    }
-                  }
-                  return newPlayers;
-                });
-              }}
+              onDealCard={onDealCard}
               northPlayedCards={players.obs.currentRound.north}
               eastPlayedCards={players.obs.currentRound.east}
               southPlayedCards={players.obs.currentRound.south}
               westPlayedCards={players.obs.currentRound.west}
-            
             />
           </div>
 
@@ -636,7 +641,7 @@ function useGameState() {
       isDdeclareTrump: false,
       currentRound: { north: [], east: [], south: [], west: [], obs: [] },
       lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-      trumpSuit: 'H'
+      trumpSuit: ''
     },
     east: { 
       cards: [], 
@@ -646,7 +651,7 @@ function useGameState() {
       isDdeclareTrump: false,
       currentRound: { north: [], east: [], south: [], west: [], obs: [] },
       lastRound: { north: [], east: [], south: [], west: [], obs: [] },  
-      trumpSuit: 'H'
+      trumpSuit: ''
     },
     south: { 
       cards: [], 
@@ -656,7 +661,7 @@ function useGameState() {
       isDdeclareTrump: false,
       currentRound: { north: [], east: [], south: [], west: [], obs: [] },
       lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-        trumpSuit: 'H'
+        trumpSuit: ''
     },
     west: { 
       cards: [], 
@@ -666,7 +671,7 @@ function useGameState() {
       isDdeclareTrump: false,
       currentRound: { north: [], east: [], south: [], west: [], obs: [] },
       lastRound: { north: [], east: [], south: [], west: [], obs: [] },
-        trumpSuit: 'H'
+        trumpSuit: ''
       
     },
     obs: {
@@ -689,7 +694,7 @@ function useGameState() {
         west: [],
         obs: []
       },
-      trumpSuit: 'H'
+      trumpSuit: ''
     } as const,
   });
 
